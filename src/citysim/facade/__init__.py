@@ -17,9 +17,11 @@ from __future__ import annotations
 from .dto import (
     EventDTO,
     HouseholdDTO,
+    NeedsDTO,
     PersonDTO,
     PlaceDTO,
     RelationshipDTO,
+    TraitsDTO,
     WorldStateDTO,
 )
 from .simulation import Simulation
@@ -27,6 +29,8 @@ from .simulation import Simulation
 __all__ = [
     "Simulation",
     "PersonDTO",
+    "TraitsDTO",
+    "NeedsDTO",
     "HouseholdDTO",
     "PlaceDTO",
     "RelationshipDTO",

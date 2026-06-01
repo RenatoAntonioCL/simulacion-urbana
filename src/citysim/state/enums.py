@@ -50,10 +50,12 @@ class EventType(Enum):
     DEATH = "death"
     AGED = "aged"
 
-    # Semana 2 — economía mínima
+    # Semana 2 — identidad y economía mínima
+    NEEDS_RECALCULATED = "needs_recalculated"
+    WELLBEING_RECALCULATED = "wellbeing_recalculated"
+    ACTION_CHOSEN = "action_chosen"
     INCOME = "income"
     EXPENSE = "expense"
-    ACTION_CHOSEN = "action_chosen"
 
     # Semana 3 — trayectoria
     GOAL_FORMED = "goal_formed"

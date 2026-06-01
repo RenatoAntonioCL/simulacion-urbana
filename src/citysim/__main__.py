@@ -25,12 +25,12 @@ def main() -> None:
     world = seed_world(config)
     log = EventLog()
 
-    invariants.check_all(world)  # estado inicial sano
+    invariants.check_all(world, log)  # estado inicial sano
 
     scheduler = Scheduler(config)
     scheduler.run(world, log, days=args.days)
 
-    invariants.check_all(world)  # estado final sano
+    invariants.check_all(world, log)  # estado final sano (incl. conservación de dinero)
 
     print(f"seed={config.seed} días={args.days or config.sim_days}")
     print(f"personas={len(world.persons)} hogares={len(world.households)} lugares={len(world.places)}")
