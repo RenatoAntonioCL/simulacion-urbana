@@ -9,6 +9,14 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 ## [No publicado]
 
 ### Added
+- **Capa de fachada** (`citysim/facade/`, ADR-0011): clase `Simulation` como única
+  superficie pública para futuros clientes (UI de escritorio, motor gráfico). Expone
+  crear mundo, avanzar (`advance`/`advance_days`), leer estado y eventos recientes,
+  `check_invariants`, y `save`/`load`. Entrega **DTOs de solo lectura** (`PersonDTO`,
+  `HouseholdDTO`, `PlaceDTO`, `RelationshipDTO`, `EventDTO`, `WorldStateDTO`); nunca las
+  entidades internas del `World`. El núcleo no se tocó. Guardado por *replay*
+  (`config + ticks`), exacto gracias al determinismo (ADR-0002) y sin serializar
+  punteros (ADR-0004).
 - **Integración continua (GitHub Actions)**: workflow `ci.yml` que en cada push/PR a
   `main` corre la suite en Python 3.11 y 3.12 y, en paralelo, construye la imagen Docker
   (stages `test` y `runtime`) con un smoke run. Badge de estado en el README.

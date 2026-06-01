@@ -54,6 +54,12 @@ estado y **devuelve** una lista de `Event`. El `eventlog` es el único component
 permiso de escritura sobre el estado. Esto da auditoría, reproducibilidad y, más
 adelante, la base para la proyección offline.
 
+**Anillos núcleo / fachada / cliente (ADR-0011):** todo lo anterior es el **núcleo**.
+A su alrededor, `facade/` expone una superficie estable (crear, avanzar, leer, guardar,
+cargar) que entrega DTOs de solo lectura. Los **clientes** (una UI de escritorio hoy; un
+motor gráfico mañana) hablan **solo** con la fachada; nunca importan `systems/` ni tocan
+el `World`. Las dependencias apuntan hacia adentro: el núcleo no conoce a nadie de afuera.
+
 ---
 
 ## 3. Estructura de paquetes
@@ -95,6 +101,10 @@ src/citysim/
 │
 ├── seed/             Generación determinista de la población inicial.
 │   └── seeder.py        100 personas · 30 hogares · 20 empresas · 1 barrio.
+│
+├── facade/           (ADR-0011) Única superficie pública para los clientes.
+│   ├── simulation.py    Clase Simulation: crear/avanzar/leer/guardar/cargar.
+│   └── dto.py           DTOs frozen de solo lectura (copias del estado relevante).
 │
 ├── projector/        (Semana 4) Persistencia offline: estado proyectado.
 │   └── projector.py
