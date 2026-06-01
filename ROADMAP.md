@@ -84,7 +84,7 @@ recuerdan, sienten, se influyen y mueren dejando huella.
 - Capa 2 (economía rica: ahorro, comercio, inversión) y resto de capas como flags.
 - Más observadores y una UI de verdad.
 - Profundizar la proyección offline para ausencias largas.
-- CI (build + tests en cada push) y publicación de la imagen.
+- Publicación de la imagen Docker en un registry (CI ya corre build + tests por push).
 
 ## Cómo seguir el avance
 

@@ -9,6 +9,9 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 ## [No publicado]
 
 ### Added
+- **Integración continua (GitHub Actions)**: workflow `ci.yml` que en cada push/PR a
+  `main` corre la suite en Python 3.11 y 3.12 y, en paralelo, construye la imagen Docker
+  (stages `test` y `runtime`) con un smoke run. Badge de estado en el README.
 - **Dockerización del proyecto** (orientado a portafolio):
   - `Dockerfile` multi-stage (`builder` / `test` / `runtime`): instala en venv aislado,
     corre la suite en el stage `test` e imagen final mínima (~220 MB) con usuario

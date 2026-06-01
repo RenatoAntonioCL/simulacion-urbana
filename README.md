@@ -1,5 +1,9 @@
 # Simulación Urbana Persistente
 
+[![CI](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml/badge.svg)](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
 Una ciudad que evoluciona sola en el tiempo, generando fenómenos emergentes a partir
 de reglas simples. No es un videojuego: es una **sociedad artificial**.
 
