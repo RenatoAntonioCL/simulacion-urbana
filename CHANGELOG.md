@@ -8,6 +8,21 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 
 ## [No publicado]
 
+### Added
+- **Semana 2 — Identidad** (ADR-0014): los agentes dejan de ser planos.
+  - **Rasgos** en `Person`, sembrados con variación poblacional (sociabilidad, ambición,
+    tolerancia al riesgo, escrupulosidad, resiliencia).
+  - Systems nuevos (Capa 1, escala horaria): `needs` (recalcula necesidades), `wellbeing`
+    (bienestar ponderado por rasgos, no solo dinero), `decision` (satisficiente,
+    determinista, ADR-0007) y `economy` (trabajo da ingreso, consumo gasta).
+  - `Person.current_action` como estado de actividad; el seeder emplea a personas en edad
+    laboral.
+  - **Invariante de conservación de dinero** (ARCHITECTURE §10 #1) + rangos [0,1] para
+    rasgos/necesidades. Determinismo reforzado: seeds distintos ⇒ logs distintos.
+  - Fachada: `PersonDTO` expone `traits`, `needs` y `current_action` (aditivo).
+  - Gate verificado por test: dos agentes con economía similar y rasgos opuestos deciden
+    distinto de forma consistente (ambicioso → trabajar, sociable → socializar).
+
 ## [0.1.0] — 2026-06-01
 
 Primer hito con **aplicación de escritorio descargable**: núcleo + fachada + cliente

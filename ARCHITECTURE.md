@@ -175,6 +175,10 @@ El **orden** dentro de un tick horario respeta el bucle del agente de la visión
 6. economy/...      Hogar, economía y movilidad en su escala correspondiente.
 ```
 
+**Systems activos hoy** (`build_default_registry`): `aging` (poblacional) y, desde la
+Semana 2, `needs` → `wellbeing` → `decision` → `economy` (horarios, Capa 1, en ese orden).
+`emotion`, `memory`, `relations`, etc. se registran en las Semanas 3-4.
+
 ---
 
 ## 6. Reloj (scheduler/)

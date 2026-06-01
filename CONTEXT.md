@@ -27,13 +27,14 @@ Documentos de origen:
 
 | Aspecto            | Estado                                                        |
 |--------------------|--------------------------------------------------------------|
-| Fase               | **Semana 1 — Núcleo determinista** (esqueleto funcional)     |
+| Fase               | **Semana 2 — Identidad** (rasgos + necesidades + decisión)   |
 | Semana 1 (Núcleo)  | 🟡 En progreso: motor late, tickea y registra eventos        |
-| Semana 2 (Identidad)| ⬜ Pendiente                                                 |
+| Semana 2 (Identidad)| 🟡 Implementada (rasgos, needs, wellbeing, decisión, economía); pendiente mergear/etiquetar `v0.2.0-alpha` |
 | Semana 3 (Trayectoria)| ⬜ Pendiente                                              |
 | Semana 4 (Sociedad)| ⬜ Pendiente                                                 |
-| Capas activas      | Solo Capa 1 prevista para el MVP                             |
-| Tests de invariante| ✅ 7 tests verdes (invariantes + reproducibilidad)          |
+| Plataforma         | ✅ Fachada + cliente Pygame + ejecutables (release v0.1.0)   |
+| Capas activas      | Capa 1 (Personas · Hogares · Trabajo · Movilidad · economía mínima) |
+| Tests              | ✅ 41 tests verdes (invariantes, reproducibilidad, fachada, UI, gate Sem. 2) |
 
 Leyenda: ✅ hecho · 🟡 en progreso · ⏳ siguiente · ⬜ pendiente
 

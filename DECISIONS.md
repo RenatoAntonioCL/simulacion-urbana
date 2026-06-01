@@ -256,3 +256,37 @@ Estados posibles: `Propuesta` · `Aceptada` · `Reemplazada por ADR-XXXX` · `Ob
     (Gatekeeper/SmartScreen). Firmar/notarizar queda fuera de alcance por ahora.
   - (−) onefile arranca algo más lento (se autoextrae); si diera problemas en algún SO,
     el fallback documentado en el `.spec` es pasar a onedir.
+
+## ADR-0014 — Identidad (Semana 2): decisión determinista, acción como estado, dinero conservado
+
+- **Estado:** Aceptada
+- **Contexto:** La Semana 2 da heterogeneidad a los agentes (rasgos + necesidades +
+  bienestar + decisión + economía mínima). Hubo que resolver tres cosas: de dónde sale la
+  diversidad de decisiones, cómo conectar "decidir" con "tener consecuencia económica" sin
+  acoplar systems, y cómo evitar que el dinero se cree o destruya.
+- **Decisión:**
+  1. **Decisión determinista, no estocástica.** El system `decision` elige la primera
+     acción "suficientemente buena" (ADR-0007) puntuada por rasgos+necesidades, sin
+     `ctx.rng`. La diversidad nace de los **rasgos**, que el seeder muestrea con variación
+     poblacional del RNG sembrado (ADR-0002). Consecuencia buscada: el log ahora **diverge
+     por seed** (rasgos distintos ⇒ decisiones distintas), reforzando el determinismo de
+     punta a punta sin azar por tick.
+  2. **Economía mínima en `L1_BASE`** (como dice el plan). Corre en el MVP por defecto;
+     `L2_ECONOMY` se reserva para la economía rica (ahorro/comercio/inversión) del post-MVP.
+  3. **`Person.current_action`** como *estado de actividad* (no emoción — ADR-0006 prohíbe
+     persistir ánimo, no la actividad en curso, igual que `location_id`). `decision` la fija
+     vía el evento `ACTION_CHOSEN`; `economy` la lee para emitir `INCOME`/`EXPENSE`. Así
+     decisión y economía quedan desacopladas: se comunican por estado + eventos, no por
+     llamadas.
+  4. **Conservación de dinero** como invariante (#1 de ARCHITECTURE §10): el total actual
+     debe cuadrar con el inicial sembrado más Σ`INCOME` − Σ`EXPENSE`. El gasto se limita a
+     lo disponible (`min(costo, dinero)`) para que el cuadre sea exacto.
+- **Consecuencias:**
+  - (+) Gate de la Semana 2 verificable: rasgos opuestos ⇒ decisiones distintas y estables.
+  - (+) Determinismo más fuerte y testeable (seeds distintos ⇒ logs distintos).
+  - (+) La economía no puede "fabricar" dinero sin que un invariante lo detecte.
+  - (−) `decision`/`needs`/`wellbeing` emiten muchos eventos (por persona y tick); se
+    mitiga emitiendo needs/wellbeing solo ante cambios ≥ ε, pero el log de un año es grande
+    (perf no es objetivo del MVP — ARCHITECTURE §1).
+  - (−) La decisión determinista es más predecible que una con ruido; la irracionalidad
+    creíble llega en la Semana 3 (memoria + emoción), no aquí.
