@@ -8,6 +8,11 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 
 ## [No publicado]
 
+## [0.1.0] — 2026-06-01
+
+Primer hito con **aplicación de escritorio descargable**: núcleo + fachada + cliente
+Pygame + empaquetado a ejecutables (Win/Mac/Linux).
+
 ### Added
 - **Empaquetado a ejecutable** (PyInstaller, ADR-0013): el cliente se empaqueta a
   ejecutables nativos (onefile) para Windows, macOS y Linux. `packaging/` contiene el
