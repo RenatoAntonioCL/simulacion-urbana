@@ -82,6 +82,23 @@ pip install -e ".[ui]"
 python -m citysim_desktop
 ```
 
+### Aplicación de escritorio (ejecutable)
+
+Para usarla sin instalar Python, hay ejecutables descargables para Windows, macOS y
+Linux: se construyen con el workflow **Package** (manual o al publicar un tag `vX.Y.Z`)
+y quedan como *artifacts* o adjuntos al *Release* correspondiente.
+
+Para construir el ejecutable localmente (queda en `dist/`):
+
+```bash
+pip install -e ".[ui,build]"
+pyinstaller packaging/citysim-desktop.spec
+./dist/citysim-desktop            # o dist/citysim-desktop.exe en Windows
+```
+
+> Los binarios no están firmados: macOS (Gatekeeper) y Windows (SmartScreen) pueden pedir
+> confirmación al abrirlos por primera vez. Ver [ADR-0013](./DECISIONS.md).
+
 ## Estado
 
 **Semana 0 — Scaffolding.** Estructura y contratos creados; sin lógica de simulación

@@ -16,6 +16,9 @@ dev = ["pytest>=8.0"]
 # Interfaz de escritorio (cliente Pygame, ADR-0012). Opcional: el núcleo y la fachada
 # no dependen de esto. Instalar con  pip install ".[ui]"
 ui = ["pygame>=2.5"]
+# Herramientas para empaquetar el cliente a ejecutable (ADR-0013). Opcional.
+# Instalar con  pip install ".[ui,build]"
+build = ["pyinstaller>=6.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
