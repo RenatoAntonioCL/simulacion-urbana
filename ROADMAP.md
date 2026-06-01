@@ -85,6 +85,9 @@ recuerdan, sienten, se influyen y mueren dejando huella.
 - Más observadores y una UI de verdad.
 - Profundizar la proyección offline para ausencias largas.
 - Publicación de la imagen Docker en un registry (CI ya corre build + tests por push).
+- **Firma y notarización de los ejecutables** (Apple Developer en macOS, code signing en
+  Windows) para que abran sin los avisos de Gatekeeper/SmartScreen. Hoy los binarios van
+  sin firmar y requieren un paso manual al abrir (ver [ADR-0013](./DECISIONS.md)).
 
 ## Cómo seguir el avance
 
