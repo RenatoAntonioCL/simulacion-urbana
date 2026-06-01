@@ -148,3 +148,44 @@ Estados posibles: `Propuesta` · `Aceptada` · `Reemplazada por ADR-XXXX` · `Ob
   - (+) Una muerte genera ondas en la red y la economía (gate de Semana 4).
   - (−) Acopla varios systems (death, relations, contagion, economy, household);
     requiere orden de aplicación cuidadoso vía eventos.
+
+## ADR-0011 — Arquitectura núcleo / fachada / cliente
+
+- **Estado:** Aceptada
+- **Contexto:** El proyecto deja de ser solo un motor que escupe un log y pasa a ser
+  una **aplicación de escritorio descargable** (Windows, macOS, Linux) donde cada
+  usuario crea y observa sus propios mundos. El horizonte incluye conectar a futuro un
+  motor gráfico (Godot/Unity). Si el núcleo de simulación y la capa visual quedan
+  acoplados, agregar o cambiar la interfaz obligaría a reescribir el motor. Hay que
+  garantizar que la interfaz sea una pieza intercambiable, no una dependencia del
+  núcleo.
+- **Decisión:** Tres anillos con dependencias en una sola dirección (de afuera hacia
+  adentro; el núcleo no conoce a nadie de afuera):
+  1. **Núcleo** (`citysim/` actual: `state`, `systems`, `eventlog`, `scheduler`,
+     `seed`, `invariants`, `rng`). No cambia. Su responsabilidad es avanzar la
+     simulación y custodiar el estado. No sabe nada de UI, ventanas ni renderizado.
+  2. **Fachada** (`citysim/facade/`): una interfaz estable y mínima — la **única**
+     superficie que los clientes pueden tocar. Expone operaciones de alto nivel (crear
+     mundo, avanzar, leer estado, leer eventos, guardar, cargar) y entrega **DTOs de
+     solo lectura**, nunca las entidades internas del `World`. Es el contrato que
+     desacopla núcleo y clientes.
+  3. **Clientes** (fuera del paquete núcleo): consumen solo la fachada. Hoy, una UI de
+     escritorio. Mañana, Godot/Unity u otros. Ninguno importa de `systems/`,
+     `eventlog/` ni toca el `World` directamente.
+- **Consecuencias:**
+  - (+) La UI es reemplazable sin tocar el motor; un motor gráfico futuro se conecta a
+    la misma fachada (es, de hecho, el puente hacia Godot/Unity).
+  - (+) La fachada es un punto natural para serializar mundos: como el núcleo es
+    determinista y sembrado (ADR-0002), un mundo se define por `config + seed`, así que
+    guardar/compartir un mundo es guardar/compartir poco. El guardado se implementa por
+    *replay* (`config + ticks`), evitando serializar punteros (ADR-0004).
+  - (+) Los DTOs de solo lectura impiden que un cliente corrompa el estado por
+    accidente, preservando ADR-0001 (eventos como única vía de cambio).
+  - (+) Testeable: la fachada se puede ejercitar sin ninguna UI montada.
+  - (−) Capa extra de mapeo (entidad interna → DTO) con algo de duplicación y costo de
+    mantenimiento cuando el estado cambie de forma.
+  - (−) Disciplina permanente: la regla "los clientes solo hablan con la fachada" hay
+    que vigilarla en revisión; un import directo a `systems/` desde un cliente la
+    rompe.
+  - (−) La fachada debe permanecer estable; cambiarla rompe a todos los clientes a la
+    vez, así que sus cambios se piensan con más cuidado que los internos.
