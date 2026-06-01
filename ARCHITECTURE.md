@@ -60,6 +60,10 @@ cargar) que entrega DTOs de solo lectura. Los **clientes** (una UI de escritorio
 motor gráfico mañana) hablan **solo** con la fachada; nunca importan `systems/` ni tocan
 el `World`. Las dependencias apuntan hacia adentro: el núcleo no conoce a nadie de afuera.
 
+El primer cliente es **`citysim_desktop/`** (Pygame, ADR-0012), un paquete aparte del
+núcleo. Internamente se separa en *presenter* (Python puro, sin pygame, testeable sin
+pantalla) y *vista* (Pygame). Pygame es dependencia opcional (`pip install ".[ui]"`).
+
 ---
 
 ## 3. Estructura de paquetes

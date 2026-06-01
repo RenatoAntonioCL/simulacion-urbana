@@ -72,6 +72,16 @@ pytest
 python -m citysim --days 30
 ```
 
+### Interfaz de escritorio (Pygame)
+
+Cliente visual: crear un mundo, verlo, controlar el reloj (play/pausa, velocidad, paso)
+y guardar/cargar. Pygame es una dependencia opcional; el núcleo no la necesita.
+
+```bash
+pip install -e ".[ui]"
+python -m citysim_desktop
+```
+
 ## Estado
 
 **Semana 0 — Scaffolding.** Estructura y contratos creados; sin lógica de simulación
