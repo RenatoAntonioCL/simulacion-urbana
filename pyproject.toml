@@ -13,6 +13,9 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# Interfaz de escritorio (cliente Pygame, ADR-0012). Opcional: el núcleo y la fachada
+# no dependen de esto. Instalar con  pip install ".[ui]"
+ui = ["pygame>=2.5"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
