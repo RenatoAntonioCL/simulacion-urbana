@@ -26,12 +26,33 @@ from ..state.relationship import Relationship
 
 
 @dataclass(frozen=True)
-class PersonDTO:
-    """Vista de una persona (estado base — Semana 1).
+class TraitsDTO:
+    """Rasgos de personalidad (Semana 2), constantes en [0, 1]."""
 
-    Los campos de identidad/trayectoria (traits, needs, memory, goals) se incorporarán
-    a este DTO cuando sus capas estén activas; hoy no se exponen porque el MVP corre con
-    la Capa 1.
+    sociability: float
+    ambition: float
+    risk_tolerance: float
+    conscientiousness: float
+    resilience: float
+
+
+@dataclass(frozen=True)
+class NeedsDTO:
+    """Necesidades psicológicas (Semana 2), satisfacción en [0, 1]."""
+
+    belonging: float
+    autonomy: float
+    purpose: float
+    security: float
+    stimulation: float
+
+
+@dataclass(frozen=True)
+class PersonDTO:
+    """Vista de una persona.
+
+    Estado base (Semana 1) + identidad (Semana 2: rasgos, necesidades, acción en curso).
+    La trayectoria (memoria, metas) se incorporará cuando sus capas estén activas.
     """
 
     id: int
@@ -45,6 +66,10 @@ class PersonDTO:
     location_id: int | None
     household_id: int | None
     employer_id: int | None
+    # Semana 2 (aditivo)
+    traits: TraitsDTO
+    needs: NeedsDTO
+    current_action: str | None
 
     @classmethod
     def from_entity(cls, p: Person) -> "PersonDTO":
@@ -60,6 +85,21 @@ class PersonDTO:
             location_id=p.location_id,
             household_id=p.household_id,
             employer_id=p.employer_id,
+            traits=TraitsDTO(
+                sociability=p.traits.sociability,
+                ambition=p.traits.ambition,
+                risk_tolerance=p.traits.risk_tolerance,
+                conscientiousness=p.traits.conscientiousness,
+                resilience=p.traits.resilience,
+            ),
+            needs=NeedsDTO(
+                belonging=p.needs.belonging,
+                autonomy=p.needs.autonomy,
+                purpose=p.needs.purpose,
+                security=p.needs.security,
+                stimulation=p.needs.stimulation,
+            ),
+            current_action=p.current_action,
         )
 
 

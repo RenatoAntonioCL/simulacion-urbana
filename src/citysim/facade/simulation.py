@@ -130,8 +130,8 @@ class Simulation:
     # --- Invariantes ----------------------------------------------------------
 
     def check_invariants(self) -> None:
-        """Reutiliza los invariantes del núcleo sobre el estado actual."""
-        invariants.check_all(self._world)
+        """Reutiliza los invariantes del núcleo sobre el estado actual (incl. dinero)."""
+        invariants.check_all(self._world, self._log)
 
     # --- Persistencia (replay: config + ticks) -------------------------------
 
