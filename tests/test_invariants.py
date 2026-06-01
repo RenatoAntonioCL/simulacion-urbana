@@ -37,3 +37,8 @@ def test_valid_ranges_after_run():
 def test_referential_integrity_after_run():
     world, _ = _run()
     invariants.check_referential_integrity(world)
+
+
+def test_money_conservation_after_run():
+    world, log = _run()
+    invariants.check_money_conservation(world, log)

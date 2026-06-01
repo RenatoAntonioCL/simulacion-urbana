@@ -1,11 +1,9 @@
-"""Gate de la Semana 1: mismo seed ⇒ mismo run, reproducible.
+"""Gate de determinismo: mismo seed ⇒ mismo run, reproducible.
 
-Nota sobre el alcance actual: en la Semana 1 el único system es `aging`, que es
-determinista y seed-independiente. Por eso el LOG de eventos todavía no diverge entre
-seeds: la semilla solo afecta la población inicial (que el seeder genera con el RNG).
-La divergencia del log por seed aparecerá al sumar systems estocásticos (Semanas 3-4),
-y este test deberá fortalecerse entonces. Hoy validamos:
-  - mismo seed ⇒ mismo log (reproducibilidad), y
+Desde la Semana 2 el log **diverge por seed**: los rasgos se siembran con el RNG y guían
+las decisiones, así que dos seeds producen historias distintas. Validamos:
+  - mismo seed ⇒ mismo log (reproducibilidad),
+  - seeds distintos ⇒ logs distintos (la semilla importa de punta a punta),
   - seeds distintos ⇒ poblaciones iniciales distintas.
 """
 
@@ -32,6 +30,10 @@ def _world_fingerprint(seed: int) -> tuple:
 
 def test_same_seed_same_log():
     assert _log_fingerprint(42, 15) == _log_fingerprint(42, 15)
+
+
+def test_different_seed_different_log():
+    assert _log_fingerprint(42, 15) != _log_fingerprint(7, 15)
 
 
 def test_same_seed_same_initial_world():
