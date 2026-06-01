@@ -64,6 +64,10 @@ El primer cliente es **`citysim_desktop/`** (Pygame, ADR-0012), un paquete apart
 núcleo. Internamente se separa en *presenter* (Python puro, sin pygame, testeable sin
 pantalla) y *vista* (Pygame). Pygame es dependencia opcional (`pip install ".[ui]"`).
 
+Ese cliente se empaqueta a ejecutables descargables (Win/Mac/Linux) con PyInstaller
+(ADR-0013): el `.spec` y el script de entrada viven en **`packaging/`**, fuera de `src/`,
+y un workflow construye un binario por SO. Es build, no parte del motor.
+
 ---
 
 ## 3. Estructura de paquetes

@@ -9,6 +9,14 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 ## [No publicado]
 
 ### Added
+- **Empaquetado a ejecutable** (PyInstaller, ADR-0013): el cliente se empaqueta a
+  ejecutables nativos (onefile) para Windows, macOS y Linux. `packaging/` contiene el
+  `.spec` versionado y el script de entrada; un nuevo workflow `package.yml` construye un
+  binario por SO en matriz, lo valida con un modo `--smoke` headless y lo sube como
+  artifact (y lo adjunta a un Release en tags `v*`). Pygame usa su fuente integrada (no
+  depende de fuentes del SO) y los mundos se guardan en un directorio de datos del usuario
+  (`citysim_desktop/paths.py`). PyInstaller es extra opcional `[build]`; el núcleo sigue
+  sin dependencias.
 - **Cliente de escritorio** (`citysim_desktop/`, ADR-0012): primera interfaz visual en
   Pygame, conectada solo a la fachada. Pantalla de creación de mundo (seed, personas,
   hogares, empresas), vista del barrio (lugares + personas con disposición determinista

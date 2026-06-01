@@ -220,3 +220,39 @@ Estados posibles: `Propuesta` · `Aceptada` · `Reemplazada por ADR-XXXX` · `Ob
     siendo trabajo aparte (su puente es la fachada).
   - (−) Disciplina extra: hay que vigilar que la vista no filtre lógica de simulación y
     que el cliente no importe del núcleo más allá de la fachada (cubierto por un test).
+
+## ADR-0013 — Empaquetado a ejecutable con PyInstaller, build por-SO en CI
+
+- **Estado:** Aceptada
+- **Contexto:** El objetivo del cliente (ADR-0012) es ser una app de escritorio
+  **descargable** para Windows, macOS y Linux, sin pedirle al usuario que instale Python.
+  Empaquetar Pygame con PyInstaller tiene tropezones conocidos: las fuentes del sistema
+  pueden no estar en el binario congelado, el directorio de trabajo no es confiable al
+  lanzar con doble clic, y PyInstaller **no** cross-compila.
+- **Decisión:** Empaquetar con **PyInstaller** en modo **onefile** (un solo archivo
+  descargable), con un `.spec` versionado (`packaging/citysim-desktop.spec`) y un script
+  de entrada fino (`packaging/entry.py`). Para esquivar los tropezones:
+  - **Fuente:** la vista usa la **fuente integrada de Pygame**
+    (`pygame.font.Font(None, …)`), que viaja con Pygame; no se bundlean `.ttf` ni se usa
+    `SysFont`. Elimina la dependencia de fuentes del SO sin `--add-data`.
+  - **Guardado:** los mundos se guardan en un **directorio de datos del usuario** por SO
+    (`citysim_desktop/paths.py`), no junto al binario ni en el cwd.
+  - **Build por-SO:** un workflow `package.yml` con matriz
+    `ubuntu`/`windows`/`macos` construye un binario por plataforma (PyInstaller no
+    cross-compila). Cada job valida el binario con un modo **`--smoke`** headless
+    (`SDL_VIDEODRIVER=dummy`) que crea un mundo, avanza y sale 0; luego lo sube como
+    artifact. En tags `vX.Y.Z`, además lo adjunta a un GitHub Release.
+  - **Disparo:** solo `workflow_dispatch` y tags `v*` (no en cada PR, para no quemar
+    minutos). PyInstaller entra como extra opcional `build`; el núcleo sigue sin
+    dependencias (ADR-0009).
+- **Consecuencias:**
+  - (+) Ejecutables descargables para los tres SO, sin que el usuario instale nada.
+  - (+) El modo `--smoke` da una señal real de que el bundle arranca en cada SO, sin
+    necesidad de pantalla en CI.
+  - (+) Núcleo y fachada intactos y sin dependencias nuevas; todo el cambio vive en el
+    cliente y en `packaging/`.
+  - (−) Tres builds separados (uno por SO); no hay un único artefacto universal.
+  - (−) Los binarios no están firmados: macOS/Windows pueden advertir al abrirlos
+    (Gatekeeper/SmartScreen). Firmar/notarizar queda fuera de alcance por ahora.
+  - (−) onefile arranca algo más lento (se autoextrae); si diera problemas en algún SO,
+    el fallback documentado en el `.spec` es pasar a onedir.
