@@ -21,7 +21,7 @@ desde `v0.2.0-alpha`.
 |----------------|------------------------------|------------------------------------------------------|--------|
 | `v0.0.x`       | Núcleo determinista (Sem. 1) | ¿El mundo tickea determinista y reproducible?        | 🟡 En progreso |
 | `v0.1.0`       | Plataforma descargable       | App de escritorio: fachada + cliente Pygame + ejecutables (Win/Mac/Linux) | ✅ Hecho |
-| `v0.2.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | 🟡 En progreso |
+| `v0.2.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | ✅ Hecho |
 | `v0.3.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ⬜ Pendiente |
 | `v0.4.0-alpha` | Sociedad (Sem. 4)            | ¿La red reacciona ante una muerte / shock?           | ⬜ Pendiente |
 | `v1.0.0`       | MVP cerrado                  | Los 4 gates pasados: un año reproducible y no plano  | ⬜ Pendiente |
@@ -56,7 +56,7 @@ de escritorio real, descargable, sin pedirle Python al usuario.
       por tag (ADR-0013).
 - [x] Release `v0.1.0` publicado con los tres binarios validados (`--smoke`).
 
-## v0.2.0-alpha — Identidad 🟡
+## v0.2.0-alpha — Identidad ✅
 
 Que los agentes se vean distintos entre sí. Rompe la planitud.
 
@@ -66,7 +66,6 @@ Que los agentes se vean distintos entre sí. Rompe la planitud.
 - [x] Decisión satisficiente básica.
 - [x] Economía mínima (Capa 1): trabajo da ingreso, consumo gasta.
 - [x] **Gate:** dos agentes con economía similar pero rasgos opuestos deciden distinto.
-- [ ] (pendiente de mergear el PR de la Semana 2 y etiquetar `v0.2.0-alpha`).
 
 ## v0.3.0-alpha — Trayectoria ⬜
 

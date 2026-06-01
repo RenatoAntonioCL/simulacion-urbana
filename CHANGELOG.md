@@ -8,6 +8,12 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 
 ## [No publicado]
 
+## [0.2.0-alpha] — 2026-06-01
+
+Hito **Identidad** (Semana 2): los agentes dejan de ser planos — rasgos, necesidades,
+bienestar dependiente de ellos, decisión satisficiente y economía mínima. Gate pasado.
+La versión empaquetada es `0.2.0a1` (PEP 440); el tag del hito es `v0.2.0-alpha`.
+
 ### Added
 - **Semana 2 — Identidad** (ADR-0014): los agentes dejan de ser planos.
   - **Rasgos** en `Person`, sembrados con variación poblacional (sociabilidad, ambición,
