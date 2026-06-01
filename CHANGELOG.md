@@ -9,6 +9,14 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 ## [No publicado]
 
 ### Added
+- **Cliente de escritorio** (`citysim_desktop/`, ADR-0012): primera interfaz visual en
+  Pygame, conectada solo a la fachada. Pantalla de creación de mundo (seed, personas,
+  hogares, empresas), vista del barrio (lugares + personas con disposición determinista
+  por id), feed de eventos, controles de reloj (play/pausa, velocidad, paso) y
+  guardar/cargar. Separado en **presenter** (`controller.py`/`layout.py`, Python puro,
+  testeable sin pantalla) y **vista** (`view.py`, Pygame). Pygame es dependencia
+  **opcional** (`pip install ".[ui]"`); el núcleo sigue sin dependencias. Se ejecuta con
+  `python -m citysim_desktop`. 10 tests nuevos del presenter/layout (sin display).
 - **Capa de fachada** (`citysim/facade/`, ADR-0011): clase `Simulation` como única
   superficie pública para futuros clientes (UI de escritorio, motor gráfico). Expone
   crear mundo, avanzar (`advance`/`advance_days`), leer estado y eventos recientes,

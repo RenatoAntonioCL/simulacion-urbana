@@ -189,3 +189,34 @@ Estados posibles: `Propuesta` · `Aceptada` · `Reemplazada por ADR-XXXX` · `Ob
     rompe.
   - (−) La fachada debe permanecer estable; cambiarla rompe a todos los clientes a la
     vez, así que sus cambios se piensan con más cuidado que los internos.
+
+## ADR-0012 — Primer cliente visual: Pygame in-process, separado en presenter/vista
+
+- **Estado:** Aceptada
+- **Contexto:** Con la fachada lista (ADR-0011) toca la primera interfaz visual. El
+  objetivo es una aplicación de escritorio descargable y multiplataforma, con horizonte
+  a un motor gráfico (Godot/Unity). Hay que elegir herramienta para el primer cliente y
+  una estructura interna que no se vuelva un callejón sin salida. Las librerías de
+  formularios (Tkinter/Qt) sirven para paneles, no para dibujar un barrio con cosas
+  moviéndose; chocan con ese horizonte. Saltar ya a Godot agrega un puente IPC y un
+  segundo lenguaje antes de ver algo en pantalla.
+- **Decisión:** El primer cliente es **Pygame, in-process**, en un paquete separado del
+  núcleo, `citysim_desktop/`, que consume **solo** `citysim.facade` y `citysim.config`.
+  Internamente se parte en dos:
+  1. **Presenter** (`controller.py`, `layout.py`): Python puro, **sin pygame**. Maneja
+     la `Simulation`, traduce intenciones de UI a llamadas a la fachada y deriva la
+     disposición visual desde los ids (el núcleo no tiene coordenadas — ADR-0004).
+  2. **Vista** (`view.py`): Pygame. Solo dibuja lo que el presenter expone y envía input.
+  Pygame entra como **dependencia opcional** (`pip install ".[ui]"`); el núcleo y la
+  fachada siguen sin dependencias (ADR-0009).
+- **Consecuencias:**
+  - (+) Mínima fricción para validar la fachada con algo visible y empaquetable a
+    ejecutable (PyInstaller) en los tres SO.
+  - (+) El presenter, sin pygame, se testea sin display (corre en CI sin pantalla); la
+    vista queda como pieza reemplazable. El día de Godot/Unity, se cambia la vista y el
+    presenter/fachada siguen igual — es el mismo límite de ADR-0011, un nivel más arriba.
+  - (+) El núcleo no gana dependencias: `import citysim.facade` funciona sin pygame.
+  - (−) Pygame tiene techo gráfico bajo; no es un motor. El salto a Godot/Unity sigue
+    siendo trabajo aparte (su puente es la fachada).
+  - (−) Disciplina extra: hay que vigilar que la vista no filtre lógica de simulación y
+    que el cliente no importe del núcleo más allá de la fachada (cubierto por un test).
