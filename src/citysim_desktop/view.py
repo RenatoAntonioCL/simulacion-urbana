@@ -7,18 +7,25 @@ Sin lógica de simulación, sin mutar estado. Pygame se importa **aquí** (nunca
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pygame
 
 from . import layout
 from .controller import SCREEN_CREATE, SCREEN_WORLD, SimController
+from .paths import default_save_path
 
 WIDTH, HEIGHT = 1100, 720
 PANEL_W = 320          # ancho del panel de eventos (derecha)
 BAR_H = 64             # alto de la barra de controles (abajo)
 FPS = 60
-SAVE_PATH = Path("world_save.json")
+
+
+def _load_font(size: int) -> "pygame.font.Font":
+    """Fuente integrada de Pygame (freesansbold).
+
+    Se prefiere a `SysFont` porque viaja con Pygame: en un ejecutable congelado
+    (PyInstaller) no depende de que el SO tenga una fuente concreta instalada (ADR-0013).
+    """
+    return pygame.font.Font(None, size)
 
 # Paleta sobria.
 BG = (18, 20, 28)
@@ -93,10 +100,12 @@ class App:
         pygame.display.set_caption("Simulación urbana — cliente de escritorio")
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("menlo,consolas,monospace", 16)
-        self.big = pygame.font.SysFont("menlo,consolas,monospace", 28)
-        self.small = pygame.font.SysFont("menlo,consolas,monospace", 12)
+        # Fuente integrada de Pygame; tamaños ajustados a su métrica (≈ alto en píxeles).
+        self.font = _load_font(22)
+        self.big = _load_font(38)
+        self.small = _load_font(18)
         self.ctrl = controller or SimController()
+        self.save_path = default_save_path()
         self.running = True
 
         # Campos de la pantalla de creación.
@@ -122,11 +131,11 @@ class App:
         )
 
     def _do_load(self) -> None:
-        if SAVE_PATH.exists():
-            self.ctrl.load(SAVE_PATH)
+        if self.save_path.exists():
+            self.ctrl.load(self.save_path)
 
     def _do_save(self) -> None:
-        self.ctrl.save(SAVE_PATH)
+        self.ctrl.save(self.save_path)
 
     def _build_world_buttons(self) -> None:
         y = HEIGHT - BAR_H + 12
@@ -268,3 +277,20 @@ class App:
 
 def main() -> None:
     App().run()
+
+
+def run_smoke(ticks: int = 48) -> None:
+    """Arranque de validación, sin interacción: crea un mundo, avanza y dibuja un frame.
+
+    Pensado para correr el ejecutable congelado con `--smoke` (SDL en modo dummy) y
+    confirmar que el bundle realmente inicia, sin necesidad de pantalla (ADR-0013).
+    """
+    app = App()
+    app.ctrl.create_world(seed=42, n_persons=60, n_households=15, n_businesses=8)
+    app.ctrl.toggle_play()
+    app.ctrl.set_speed(24)
+    app._build_world_buttons()
+    for _ in range(5):
+        app.ctrl.update(ticks / (5 * app.ctrl.speed))
+        app._draw()
+    pygame.quit()
