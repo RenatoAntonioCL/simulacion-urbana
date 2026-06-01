@@ -11,15 +11,19 @@ pasar. Cada hito mapea a una versión.
 ## Versionado
 
 Mientras el MVP está en construcción, la versión vive en `0.x` y la API es inestable.
-Cada hito semanal corresponde a una release alpha; el MVP cerrado (los 4 gates) marca
-la primera versión estable de referencia.
+Cada hito semanal del núcleo corresponde a una release alpha; el MVP cerrado (los 4
+gates) marca la primera versión estable de referencia. Aparte de esa secuencia, hubo un
+hito de **plataforma** —`v0.1.0`, la app de escritorio descargable— que no es uno de los
+4 gates de comportamiento sino la vía de entrega; por eso los hitos del núcleo siguen
+desde `v0.2.0-alpha`.
 
-| Versión        | Hito                         | Gate de validación                                   | Estado |
+| Versión        | Hito                         | Gate / criterio                                      | Estado |
 |----------------|------------------------------|------------------------------------------------------|--------|
 | `v0.0.x`       | Núcleo determinista (Sem. 1) | ¿El mundo tickea determinista y reproducible?        | 🟡 En progreso |
-| `v0.1.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | ⬜ Pendiente |
-| `v0.2.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ⬜ Pendiente |
-| `v0.3.0-alpha` | Sociedad (Sem. 4)            | ¿La red reacciona ante una muerte / shock?           | ⬜ Pendiente |
+| `v0.1.0`       | Plataforma descargable       | App de escritorio: fachada + cliente Pygame + ejecutables (Win/Mac/Linux) | ✅ Hecho |
+| `v0.2.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | ⬜ Pendiente |
+| `v0.3.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ⬜ Pendiente |
+| `v0.4.0-alpha` | Sociedad (Sem. 4)            | ¿La red reacciona ante una muerte / shock?           | ⬜ Pendiente |
 | `v1.0.0`       | MVP cerrado                  | Los 4 gates pasados: un año reproducible y no plano  | ⬜ Pendiente |
 
 Leyenda: ✅ hecho · 🟡 en progreso · ⬜ pendiente
@@ -39,7 +43,20 @@ Motor que late: tickea de forma determinista y registra eventos. Sin comportamie
 - [ ] Envejecimiento con demografía base completa (nacimientos/muertes por edad).
 - [ ] **Gate:** dos runs con el mismo seed ⇒ mismo log; invariantes verdes tras un año.
 
-## v0.1.0-alpha — Identidad ⬜
+## v0.1.0 — Plataforma descargable ✅
+
+Hito de entrega (paralelo a los gates del núcleo): convertir el motor en una aplicación
+de escritorio real, descargable, sin pedirle Python al usuario.
+
+- [x] Capa de fachada (`citysim/facade/`): única superficie pública con DTOs de solo
+      lectura; guardar/cargar por replay (ADR-0011).
+- [x] Cliente de escritorio en Pygame (`citysim_desktop/`): creación de mundo, vista del
+      barrio, feed de eventos, controles de reloj, guardar/cargar (ADR-0012).
+- [x] Empaquetado a ejecutables (Win/Mac/Linux) con PyInstaller + workflow de release
+      por tag (ADR-0013).
+- [x] Release `v0.1.0` publicado con los tres binarios validados (`--smoke`).
+
+## v0.2.0-alpha — Identidad ⬜
 
 Que los agentes se vean distintos entre sí. Rompe la planitud.
 
@@ -50,7 +67,7 @@ Que los agentes se vean distintos entre sí. Rompe la planitud.
 - [ ] Economía mínima (Capa 1): trabajo da ingreso, consumo gasta.
 - [ ] **Gate:** dos agentes con economía similar pero rasgos opuestos deciden distinto.
 
-## v0.2.0-alpha — Trayectoria ⬜
+## v0.3.0-alpha — Trayectoria ⬜
 
 Que el pasado vivido cambie el presente, con irracionalidad creíble.
 
@@ -60,7 +77,7 @@ Que el pasado vivido cambie el presente, con irracionalidad creíble.
 - [ ] Conexión memoria → decisión (un despido sube la aversión al riesgo).
 - [ ] **Gate:** dos agentes iguales con historias distintas se comportan distinto hoy.
 
-## v0.3.0-alpha — Sociedad ⬜
+## v0.4.0-alpha — Sociedad ⬜
 
 Que las acciones repercutan en la red y que la muerte pese.
 
