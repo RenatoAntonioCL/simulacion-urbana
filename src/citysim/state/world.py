@@ -29,6 +29,9 @@ class World:
     born_count: int = 0
     dead_count: int = 0
 
+    # Dinero total al sembrar: baseline del invariante de conservación de dinero (Semana 2).
+    initial_money_total: float = 0.0
+
     # --- Accesos de conveniencia (lectura) ---
 
     def living_persons(self) -> list[Person]:

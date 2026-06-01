@@ -82,6 +82,10 @@ class Person:
     location_id: int | None = None  # Place.id actual
     alive: bool = True
 
+    # Actividad en curso (Semana 2). Es estado de actividad, NO emoción: la decisión la
+    # fija cada tick y la economía la lee. La emoción sigue prohibida como campo (ADR-0006).
+    current_action: str | None = None
+
     # Vínculos estructurales por id (ADR-0004)
     household_id: int | None = None
     employer_id: int | None = None

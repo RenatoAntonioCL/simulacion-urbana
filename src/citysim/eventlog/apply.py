@@ -70,5 +70,68 @@ def _apply_birth(world: World, event: Event) -> None:
     world.persons[person.id] = person
     world.born_count += 1
 
-# Los demás EventType (INCOME, EXPENSE, GOAL_*, RELATIONSHIP_*, ...) se registran
-# aquí a medida que se implementan sus systems (Semanas 2-4).
+
+# --- Aplicadores Semana 2 (identidad y economía mínima) ----------------------
+
+def _clamp01(x: float) -> float:
+    return 0.0 if x < 0.0 else 1.0 if x > 1.0 else x
+
+
+# Efectos por tick de cada acción: (delta energía, necesidad reforzada, delta necesidad).
+# Las claves de acción son las de systems/decision.py (work/socialize/rest/consume).
+_ACTION_EFFECTS: dict[str, tuple[float, str | None, float]] = {
+    "work": (-0.05, "purpose", 0.05),
+    "socialize": (-0.03, "belonging", 0.12),
+    "rest": (0.10, None, 0.0),
+    "consume": (-0.01, "stimulation", 0.12),
+}
+
+
+@applier(EventType.NEEDS_RECALCULATED)
+def _apply_needs(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    n = person.needs
+    n.belonging = event.payload["belonging"]
+    n.autonomy = event.payload["autonomy"]
+    n.purpose = event.payload["purpose"]
+    n.security = event.payload["security"]
+    n.stimulation = event.payload["stimulation"]
+
+
+@applier(EventType.WELLBEING_RECALCULATED)
+def _apply_wellbeing(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is not None and person.alive:
+        person.wellbeing = event.payload["wellbeing"]
+
+
+@applier(EventType.ACTION_CHOSEN)
+def _apply_action(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    action = event.payload["action"]
+    person.current_action = action
+    d_energy, need, d_need = _ACTION_EFFECTS.get(action, (0.0, None, 0.0))
+    person.energy = _clamp01(person.energy + d_energy)
+    if need is not None:
+        setattr(person.needs, need, _clamp01(getattr(person.needs, need) + d_need))
+
+
+@applier(EventType.INCOME)
+def _apply_income(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is not None and person.alive:
+        person.money += event.payload["amount"]
+
+
+@applier(EventType.EXPENSE)
+def _apply_expense(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is not None and person.alive:
+        person.money -= event.payload["amount"]
+
+# Los demás EventType (GOAL_*, RELATIONSHIP_*, ...) se registran aquí a medida que se
+# implementan sus systems (Semanas 3-4).

@@ -14,17 +14,23 @@ from ..rng import Rng
 from ..state.enums import EventType, TimeScale
 from ..state.event import Event
 from ..state.world import World
-from ..systems import aging
+from ..systems import aging, decision, economy, needs, wellbeing
 from ..systems.base import SystemSpec, TickContext
 
 
 def build_default_registry() -> list[SystemSpec]:
     """Systems disponibles. Solo los de capas activas correrán (filtrado en el Scheduler).
 
-    Semana 1 registra únicamente `aging`. Los demás systems se agregan aquí a medida
-    que se implementan (Semanas 2-4), declarando su escala, capa y orden.
+    El scheduler los filtra por escala/capa y los ordena por `SystemSpec.order`, según el
+    bucle del agente (ARCHITECTURE.md §5): needs → wellbeing → decision → economía.
     """
-    return [aging.SPEC]
+    return [
+        aging.SPEC,
+        needs.SPEC,
+        wellbeing.SPEC,
+        decision.SPEC,
+        economy.SPEC,
+    ]
 
 
 # Qué escalas se disparan en una frontera dada del reloj.
