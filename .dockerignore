@@ -1,0 +1,36 @@
+# Control de versiones / metadatos
+.git
+.gitignore
+
+# Entornos y caches de Python
+.venv
+venv
+__pycache__
+*.py[cod]
+*.egg-info
+.eggs
+build
+dist
+
+# Caches de herramientas
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Artefactos de runs
+runs
+out
+*.run.json
+
+# Editor / SO
+.idea
+.vscode
+.DS_Store
+
+# Docker / docs que no necesita la imagen
+.dockerignore
+Dockerfile
+docker-compose.yml
+Makefile

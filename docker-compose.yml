@@ -1,0 +1,25 @@
+# Orquestación para desarrollo y demo del proyecto.
+#
+#   docker compose run --rm sim                 # corre un año (CMD por defecto)
+#   docker compose run --rm sim --days 30        # run corto, sobreescribiendo args
+#   docker compose run --rm tests                # corre la suite de pytest
+#
+# El target `runtime` produce la imagen mínima de ejecución; `test` corre la
+# suite durante el build y deja una imagen con las dev-deps para iterar.
+
+services:
+  sim:
+    build:
+      context: .
+      target: runtime
+    image: citysim:latest
+    # Persiste los logs de eventos generados (EventLog.to_json) en ./runs.
+    volumes:
+      - ./runs:/app/runs
+
+  tests:
+    build:
+      context: .
+      target: test
+    image: citysim:test
+    command: ["pytest", "-q"]
