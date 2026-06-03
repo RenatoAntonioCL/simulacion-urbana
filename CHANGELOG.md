@@ -8,6 +8,39 @@ esté en desarrollo, la versión se mantiene en `0.x` y la API se considera ines
 
 ## [No publicado]
 
+## [0.3.0-alpha] — 2026-06-02
+
+Hito **Trayectoria** (Semana 3): el pasado vivido cambia el comportamiento presente.
+Gate pasado: dos agentes idénticos en rasgos pero con historias distintas deciden
+distinto hoy; la emoción decae a un ritmo coherente con la resiliencia.
+La versión empaquetada es `0.3.0a1` (PEP 440); el tag del hito es `v0.3.0-alpha`.
+
+### Added
+- **Semana 3 — Trayectoria**: el pasado pesa.
+  - **`systems/memory.py`** (escala diaria): envejece trazas episódicas (`age_ticks += 1`)
+    y registra estados significativos (bienestar bajo, desempleo con propósito caído).
+    Emite `MEMORY_UPDATED`; el aplicador reconstruye `Person.memory` desde el payload.
+  - **`systems/emotion.py`**: función pura `compute(person) → float [-1, 1]`. Señal
+    emocional transitoria calculada como suma ponderada de valences con decaimiento
+    exponencial (sin normalizar) — un recuerdo muy antiguo pierde peso absoluto y el
+    ánimo converge a 0. Resiliencia alta → tasa de decaimiento mayor → recuperación más
+    rápida. Nunca almacenada; recalculada cada tick en `decision.py`.
+  - **`systems/goals.py`** (escala diaria): metas dinámicas `earn_more` y `find_work`.
+    Se forman cuando la necesidad y el rasgo lo indican; se logran cuando la condición
+    se cumple. Un logro deja traza positiva en memoria; un abandono, negativa.
+  - **`systems/decision.py`**: `_scores()` incorpora la señal emocional como modificador
+    aditivo (±0.10 × mood) en `work`, `rest` y `consume`. Un agente con recuerdo de
+    desempleo reciente reduce su puntaje de `work` y eleva el de `rest`, pudiendo cruzar
+    el umbral de decisión satisficiente hacia la inacción.
+  - `EventType.MEMORY_UPDATED` añadido al enum de tipos cerrados.
+  - Aplicadores en `eventlog/apply.py` para `MEMORY_UPDATED`, `GOAL_FORMED`,
+    `GOAL_ACHIEVED` y `GOAL_ABANDONED`.
+- **Corrección del workflow `package.yml`**: `prerelease: ${{ contains(github.ref, '-') }}`
+  para marcar automáticamente los tags con guión (alpha/beta/rc) sin intervención manual.
+- 8 tests nuevos (`test_week3_trajectory.py`): señal emocional sin memoria, con memoria
+  negativa/positiva, decaimiento con el tiempo, efecto de resiliencia, y el gate central
+  (mismos rasgos + distinta historia → distinta acción). **49 tests verdes en total.**
+
 ## [0.2.0-alpha] — 2026-06-01
 
 Hito **Identidad** (Semana 2): los agentes dejan de ser planos — rasgos, necesidades,
