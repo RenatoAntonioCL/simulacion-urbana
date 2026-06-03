@@ -1,69 +1,69 @@
-# Simulación Urbana Persistente
+# Persistent Urban Simulation
 
 [![CI](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml/badge.svg)](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-Una ciudad que evoluciona sola en el tiempo, generando fenómenos emergentes a partir
-de reglas simples. No es un videojuego: es una **sociedad artificial**.
+A city that evolves on its own over time, generating emergent phenomena from
+simple rules. It is not a video game: it is an **artificial society**.
 
-> La ciudad no existe para el jugador. El jugador existe dentro de la ciudad.
+> The city does not exist for the player. The player exists inside the city.
 
-## Documentación
+## Documentation
 
-| Documento | Contenido |
+| Document | Content |
 |---|---|
-| [`simulacion_urbana_v2.md`](./simulacion_urbana_v2.md) | Visión y modelo conceptual |
-| [`plan_4_semanas.md`](./plan_4_semanas.md) | Plan de ejecución del MVP (gates semanales) |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Arquitectura técnica |
-| [`DECISIONS.md`](./DECISIONS.md) | Decisiones de arquitectura (ADRs) |
-| [`ROADMAP.md`](./ROADMAP.md) | Hitos hacia las versiones alpha y progreso |
-| [`CONTEXT.md`](./CONTEXT.md) | Estado vivo y convenciones de trabajo |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Historial de cambios |
+| [`simulacion_urbana_v2.md`](./simulacion_urbana_v2.md) | Vision and conceptual model |
+| [`plan_4_semanas.md`](./plan_4_semanas.md) | MVP execution plan (weekly gates) |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Technical architecture |
+| [`DECISIONS.md`](./DECISIONS.md) | Architecture decisions (ADRs) |
+| [`ROADMAP.md`](./ROADMAP.md) | Milestones toward alpha versions and progress |
+| [`CONTEXT.md`](./CONTEXT.md) | Live status and working conventions |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Change history |
 
 ## Stack
 
-Python 3.11+ · `dataclasses` · `pytest` · RNG sembrado · persistencia JSON.
-Dependencias mínimas. (Ver [ADR-0009](./DECISIONS.md).)
+Python 3.11+ · `dataclasses` · `pytest` · seeded RNG · JSON persistence.
+Minimal dependencies. (See [ADR-0009](./DECISIONS.md).)
 
-## Estructura
+## Structure
 
 ```text
-src/citysim/      Motor de simulación (ver ARCHITECTURE.md §3)
-tests/            Tests de invariantes y de comportamiento
-Dockerfile        Imagen multi-stage (build / test / runtime no-root)
-docker-compose.yml  Servicios `sim` y `tests`
-Makefile          Atajos: build, run, test, shell
+src/citysim/      Simulation engine (see ARCHITECTURE.md §3)
+tests/            Invariant and behavior tests
+Dockerfile        Multi-stage image (build / test / runtime non-root)
+docker-compose.yml  `sim` and `tests` services
+Makefile          Shortcuts: build, run, test, shell
 ```
 
-## Puesta en marcha
+## Getting started
 
-### Con Docker (recomendado)
+### With Docker (recommended)
 
-No requiere tener Python instalado: solo Docker.
+No Python installation required: Docker only.
 
 ```bash
-make build        # construye la imagen de ejecución
-make run          # corre la simulación (vars: DAYS=30 SEED=7)
-make test         # corre la suite de tests dentro del contenedor
-make shell        # abre una shell dentro del contenedor
-make help         # lista todos los objetivos
+make build        # builds the runtime image
+make run          # runs the simulation (vars: DAYS=30 SEED=7)
+make test         # runs the test suite inside the container
+make shell        # opens a shell inside the container
+make help         # lists all targets
 ```
 
-O directamente con la CLI de Docker / Compose:
+Or directly with the Docker / Compose CLI:
 
 ```bash
 docker build -t citysim .
 docker run --rm citysim --days 30 --seed 7
 
-docker compose run --rm sim --days 30   # ejecución
-docker compose run --rm tests           # suite de pytest
+docker compose run --rm sim --days 30   # run
+docker compose run --rm tests           # pytest suite
 ```
 
-La imagen es multi-stage (build / test / runtime), corre como usuario no-root y la
-final pesa ~220 MB. Ver [`Dockerfile`](./Dockerfile).
+The image is multi-stage (build / test / runtime), runs as a non-root user and
+the final image weighs ~220 MB. See [`Dockerfile`](./Dockerfile).
 
-### Local (sin Docker)
+### Local (without Docker)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -72,41 +72,41 @@ pytest
 python -m citysim --days 30
 ```
 
-### Interfaz de escritorio (Pygame)
+### Desktop interface (Pygame)
 
-Cliente visual: crear un mundo, verlo, controlar el reloj (play/pausa, velocidad, paso)
-y guardar/cargar. Pygame es una dependencia opcional; el núcleo no la necesita.
+Visual client: create a world, watch it, control the clock (play/pause, speed, step)
+and save/load. Pygame is an optional dependency; the core does not require it.
 
 ```bash
 pip install -e ".[ui]"
 python -m citysim_desktop
 ```
 
-### Aplicación de escritorio (ejecutable)
+### Desktop application (executable)
 
-Para usarla sin instalar Python, hay ejecutables descargables para Windows, macOS y
-Linux: se construyen con el workflow **Package** (manual o al publicar un tag `vX.Y.Z`)
-y quedan como *artifacts* o adjuntos al *Release* correspondiente.
+To use without installing Python, downloadable executables are available for Windows,
+macOS and Linux: they are built by the **Package** workflow (manually or when publishing
+a `vX.Y.Z` tag) and are attached as *artifacts* or to the corresponding *Release*.
 
-Para construir el ejecutable localmente (queda en `dist/`):
+To build the executable locally (output in `dist/`):
 
 ```bash
 pip install -e ".[ui,build]"
 pyinstaller packaging/citysim-desktop.spec
-./dist/citysim-desktop            # o dist/citysim-desktop.exe en Windows
+./dist/citysim-desktop            # or dist/citysim-desktop.exe on Windows
 ```
 
-> Los binarios no están firmados: macOS (Gatekeeper) y Windows (SmartScreen) pueden pedir
-> confirmación al abrirlos por primera vez. Ver [ADR-0013](./DECISIONS.md).
+> Binaries are unsigned: macOS (Gatekeeper) and Windows (SmartScreen) may ask for
+> confirmation when opening them for the first time. See [ADR-0013](./DECISIONS.md).
 
-## Estado
+## Status
 
-**Semana 0 — Scaffolding.** Estructura y contratos creados; sin lógica de simulación
-todavía. Próximo: Semana 1 (núcleo determinista). Ver [CONTEXT.md](./CONTEXT.md).
+**Week 0 — Scaffolding.** Structure and contracts created; no simulation logic yet.
+Next: Week 1 (deterministic core). See [CONTEXT.md](./CONTEXT.md).
 
-## Principios
+## Principles
 
-1. **Determinista** — mismo seed ⇒ mismo run.
-2. **Auditable** — todo cambio pasa por un `Event`.
-3. **Por capas** — el MVP corre con la Capa 1; el resto se enciende por flags.
-4. **Heterogéneo** — rasgo (fijo) + memoria (acumula) + emoción (decae).
+1. **Deterministic** — same seed ⇒ same run.
+2. **Auditable** — every change goes through an `Event`.
+3. **Layered** — the MVP runs with Layer 1; the rest is toggled by flags.
+4. **Heterogeneous** — trait (fixed) + memory (accumulates) + emotion (decays).

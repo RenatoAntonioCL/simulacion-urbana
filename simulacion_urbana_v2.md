@@ -1,416 +1,460 @@
-# Proyecto de Simulación Urbana Persistente — v2
+# Persistent Urban Simulation Project — v2
 
-## Visión
+## Vision
 
-Construir una simulación urbana persistente donde una ciudad evoluciona de forma autónoma a través del tiempo, incluso cuando el usuario no está conectado.
+Build a persistent urban simulation where a city evolves autonomously over time, even
+when the user is not connected.
 
-El objetivo no es crear un videojuego tradicional, sino una sociedad artificial capaz de generar fenómenos emergentes relacionados con movilidad, economía, energía, empleo, salud, relaciones humanas, seguridad, infraestructura, clima, comercio y cultura.
+The goal is not to create a traditional video game, but an artificial society capable
+of generating emergent phenomena related to mobility, economy, energy, employment,
+health, human relationships, safety, infrastructure, climate, commerce and culture.
 
-La ciudad es el protagonista. El usuario puede observarla o participar desde distintas perspectivas.
+The city is the protagonist. The user can observe it or participate from different
+perspectives.
 
-> **La ciudad no existe para el jugador. El jugador existe dentro de la ciudad.**
-
----
-
-# Principio Fundamental
-
-No se debe comenzar modelando miles de variables complejas. Primero se define un conjunto mínimo de reglas capaces de generar comportamientos creíbles. La complejidad emerge progresivamente.
-
-## Pregunta Central
-
-La simulación debe responder:
-
-> ¿Qué reglas producen una sociedad creíble?
-
-No:
-
-> ¿Qué acciones puede realizar un personaje?
+> **The city does not exist for the player. The player exists inside the city.**
 
 ---
 
-# Cambio de Paradigma respecto a la v1
+# Fundamental Principle
 
-La v1 era estructuralmente sólida pero producía **agentes planos**. La causa no era falta de variables, sino que todos los agentes eran el mismo agente: corrían la misma función objetivo con los mismos pesos. Diferían en sus números, no en quiénes eran.
+Do not start by modeling thousands of complex variables. First define a minimal set of
+rules capable of generating credible behavior. Complexity emerges progressively.
 
-La v2 corrige esto con cuatro decisiones de diseño:
+## Central Question
 
-1. **Los agentes tienen rasgos.** Constantes de personalidad fijadas al nacer que modulan toda decisión. Mismo motor, agentes distintos.
-2. **El bienestar deja de ser materialista.** Se incorporan necesidades psicológicas (pertenencia, autonomía, propósito) que el bienestar pondera. Un agente rico pero aislado puede estar mal.
-3. **Los agentes recuerdan.** Memoria episódica que crea dependencia de trayectoria: el pasado vivido cambia el comportamiento presente.
-4. **Los agentes satisfacen, no optimizan.** Racionalidad acotada: eligen lo "suficientemente bueno" con información incompleta y sesgada por emoción. La irracionalidad acotada se lee como humanidad.
+The simulation must answer:
 
-### Tensión resuelta: estados psicológicos
+> What rules produce a credible society?
 
-La v1 prohibía "almacenar estados psicológicos arbitrarios" (correcto). La v2 mantiene esa prohibición separando tres cosas que viven en escalas de tiempo distintas:
+Not:
 
-| Concepto | Naturaleza | ¿Se almacena? | Ejemplo |
+> What actions can a character perform?
+
+---
+
+# Paradigm Shift from v1
+
+v1 was structurally sound but produced **flat agents**. The cause was not a lack of
+variables, but that all agents were the same agent: they ran the same objective function
+with the same weights. They differed in their numbers, not in who they were.
+
+v2 corrects this with four design decisions:
+
+1. **Agents have traits.** Personality constants fixed at birth that modulate every
+   decision. Same engine, different agents.
+2. **Wellbeing is no longer materialistic.** Psychological needs (belonging, autonomy,
+   purpose) are incorporated and weighted in wellbeing. A wealthy but isolated agent
+   can be doing poorly.
+3. **Agents remember.** Episodic memory creates path dependence: past lived experience
+   changes present behavior.
+4. **Agents satisfice, not optimize.** Bounded rationality: they choose what is "good
+   enough" with incomplete information biased by emotion. Bounded irrationality reads
+   as humanity.
+
+### Resolved tension: psychological states
+
+v1 forbade "storing arbitrary psychological states" (correct). v2 maintains that
+prohibition by separating three things that live on different time scales:
+
+| Concept | Nature | Stored? | Example |
 |---|---|---|---|
-| **Rasgo** | Estable, casi invariable | Sí, como constante | Alta resiliencia |
-| **Memoria** | Acumulativa, decae lento | Sí, como registro | Despido hace 2 años |
-| **Emoción** | Transitoria, decae rápido | Nunca fija; se recalcula | Pena tras una pérdida |
+| **Trait** | Stable, nearly invariant | Yes, as a constant | High resilience |
+| **Memory** | Accumulative, slow decay | Yes, as a record | Layoff 2 years ago |
+| **Emotion** | Transient, fast decay | Never fixed; recomputed | Grief after a loss |
 
-Así, "Persona triste" almacenada sigue prohibido. Pero `alto neuroticismo (rasgo) + duelo reciente (memoria) → pena (emoción emergente que decae) → menos bienestar y decisiones sesgadas` es legítimo.
+Thus, a stored "sad person" remains forbidden. But `high neuroticism (trait) + recent
+grief (memory) → sorrow (emergent emotion that decays) → lower wellbeing and biased
+decisions` is legitimate.
 
 ---
 
-# Entidades Fundamentales
+# Fundamental Entities
 
 ## Person
 
-Representa un individuo.
+Represents an individual.
 
-### Atributos de estado (variables base)
+### State attributes (base variables)
 
 ```text
 ID
-Edad
-Dinero
-Tiempo
-Energía
-Bienestar
-Salud
-Ubicación
+Age
+Money
+Time
+Energy
+Wellbeing
+Health
+Location
 ```
 
-### Rasgos (constantes, fijados al nacer) — NUEVO
+### Traits (constants, fixed at birth) — NEW
 
 ```text
-Sociabilidad        (necesidad de vínculo, tolerancia al aislamiento)
-Ambición            (peso de carrera vs ocio)
-Tolerancia al riesgo (cómo evalúa decisiones inciertas)
-Escrupulosidad      (planificación, constancia, hábitos)
-Resiliencia         (velocidad de recuperación tras eventos negativos)
+Sociability         (need for connection, tolerance for isolation)
+Ambition            (weight of career vs leisure)
+Risk tolerance      (how uncertain decisions are evaluated)
+Conscientiousness   (planning, consistency, habits)
+Resilience          (speed of recovery after negative events)
 ```
 
-Los rasgos no son estados de ánimo: son parámetros que modulan cómo el agente evalúa todo lo demás. Se fijan con variación poblacional y herencia parcial de los progenitores.
+Traits are not moods: they are parameters that modulate how the agent evaluates
+everything else. They are fixed with population-level variation and partial inheritance
+from progenitors.
 
-### Necesidades psicológicas — NUEVO
+### Psychological needs — NEW
 
 ```text
-Pertenencia    (vínculos sociales activos)
-Autonomía      (control sobre las propias decisiones)
-Propósito      (sentirse útil / competente)
-Seguridad      (estabilidad económica y física)
-Estímulo       (novedad, variedad)
+Belonging      (active social bonds)
+Autonomy       (control over one's own decisions)
+Purpose        (feeling useful / competent)
+Security       (economic and physical stability)
+Stimulation    (novelty, variety)
 ```
 
-El bienestar pasa a depender de estas necesidades, ponderadas según los rasgos, no solo del dinero.
+Wellbeing now depends on these needs, weighted by traits, not just on money.
 
-### Memoria episódica — NUEVO
+### Episodic memory — NEW
 
 ```text
-Lista de eventos significativos vividos
-Cada uno con: tipo, valencia, intensidad, antigüedad
-Peso decreciente con el tiempo (no se borra, se atenúa)
+List of significant events experienced
+Each with: type, valence, intensity, age
+Decreasing weight over time (not erased, attenuated)
 ```
 
-### Objetivos — REVISADO (ya no estático)
+### Goals — REVISED (no longer static)
 
 ```text
-Metas que se forman, se persiguen, se logran o se abandonan
-Cumplir o frustrar una meta mueve el bienestar
-Un agente sin metas activas debería notarlo (caída de propósito)
+Targets that form, are pursued, achieved or abandoned
+Achieving or failing a goal moves wellbeing
+An agent without active goals should notice it (drop in purpose)
 ```
 
 ---
 
 ## Household
 
-Representa un hogar.
+Represents a household.
 
 ```text
-Integrantes
-Ingresos
-Gastos
-Vivienda
-Ubicación
+Members
+Income
+Expenses
+Dwelling
+Location
 ```
 
-Función: agrupar individuos y generar dinámicas familiares. En la v2 el hogar también propaga shocks (muerte, despido, nacimiento) entre sus integrantes y puede reestructurarse o disolverse.
+Function: group individuals and generate family dynamics. In v2 the household also
+propagates shocks (death, layoff, birth) among its members and can restructure or
+dissolve.
 
 ---
 
 ## Place
 
-Representa lugares físicos (casas, empresas, escuelas, hospitales, comercios, parques).
+Represents physical locations (homes, businesses, schools, hospitals, shops, parks).
 
 ```text
-Capacidad
-Horario
-Ubicación
-Tipo
+Capacity
+Schedule
+Location
+Type
 ```
 
 ---
 
 ## Event
 
-Representa cualquier cambio significativo en el mundo (nacimiento, muerte, accidente, despido, contratación, mudanza, matrimonio, lluvia…).
+Represents any significant change in the world (birth, death, accident, layoff, hiring,
+relocation, marriage, rain…).
 
-Todos los cambios relevantes se registran como eventos a nivel mundo. **NUEVO:** los eventos significativos para un agente también se copian a su memoria episódica.
+All relevant changes are recorded as world-level events. **NEW:** significant events for
+an agent are also copied to its episodic memory.
 
 ---
 
-## Relationship — NUEVA ENTIDAD
+## Relationship — NEW ENTITY
 
-Las relaciones dejan de ser un atributo booleano y pasan a ser entidades con peso.
+Relationships stop being a boolean attribute and become weighted entities.
 
 ```text
-Tipo         (familia / amistad / pareja / laboral)
-Fuerza       (qué tan importante es el vínculo)
-Reciprocidad (¿es correspondido?)
-Historia     (eventos compartidos)
+Type         (family / friendship / partner / work)
+Strength     (how important the bond is)
+Reciprocity  (is it mutual?)
+History      (shared events)
 ```
 
-Esto es lo que hace que una muerte **importe**: el dolor se propaga por la red proporcional a la fuerza del vínculo.
+This is what makes a death **matter**: grief spreads through the network proportionally
+to the strength of the bond.
 
 ---
 
-# Regla Principal del Sistema — REVISADA
+# Main System Rule — REVISED
 
-La v1 decía "maximizar bienestar". La v2 dice:
+v1 said "maximize wellbeing". v2 says:
 
-> Todos los agentes intentan **satisfacer** su bienestar — no optimizarlo.
+> All agents attempt to **satisfice** their wellbeing — not optimize it.
 
-Eligen la primera opción "suficientemente buena" según sus pesos personales, con información incompleta y sesgada por la emoción del momento, sujeto a restricciones de **dinero, tiempo y energía**.
+They choose the first option that is "good enough" according to their personal weights,
+with incomplete information biased by the emotion of the moment, subject to constraints
+of **money, time and energy**.
 
-Los optimizadores globales perfectos se ven robóticos e idénticos. La racionalidad acotada es lo que produce diversidad de conducta.
+Perfect global optimizers look robotic and identical. Bounded rationality is what
+produces behavioral diversity.
 
 ---
 
-# Ciclo de Simulación — REVISADO
+# Simulation Cycle — REVISED
 
-## Escalas de tiempo múltiples
+## Multiple time scales
 
-La v1 fijaba "1 tick = 1 hora" como ley única. La v2 usa escalas distintas según el proceso:
+v1 fixed "1 tick = 1 hour" as a universal law. v2 uses different scales depending on
+the process:
 
 ```text
-Tick horario      → conducta individual, energía, rutinas
-Paso diario       → finanzas del hogar, contratos
-Paso mensual      → economía agregada, mercado laboral
-Paso poblacional  → demografía (nacimientos, muertes, envejecimiento)
+Hourly tick        → individual behavior, energy, routines
+Daily step         → household finances, contracts
+Monthly step       → aggregate economy, labor market
+Population step    → demographics (births, deaths, aging)
 ```
 
-## Durante cada tick horario
+## During each hourly tick
 
-1. Actualizar estado de personas (incluye recalcular emoción y decaerla).
-2. Evaluación (appraisal): comparar esperado vs real.
-3. Decidir acción (satisfacer, sesgado por rasgos + emoción).
-4. Ejecutar acción sobre el mundo.
-5. Procesar eventos y propagarlos a memorias y red social.
-6. Actualizar hogares, economía y movilidad en su escala correspondiente.
+1. Update person state (includes recomputing emotion and letting it decay).
+2. Evaluation (appraisal): compare expected vs actual.
+3. Decide action (satisfice, biased by traits + emotion).
+4. Execute action on the world.
+5. Process events and propagate them to memories and the social network.
+6. Update households, economy and mobility at their respective scale.
 
 ---
 
-# El Bucle del Agente — NUEVO
+# The Agent Loop — NEW
 
 ```text
-ENTRADAS                COGNICIÓN              SALIDA
-Rasgos (fijo)      ┐
-Necesidades        ├──→  Evaluación  ──→  Emoción  ──→  Decisión  ──→  Acción
-Memoria (acumula)  ┘                                                      │
+INPUTS                  COGNITION              OUTPUT
+Traits (fixed)     ┐
+Needs              ├──→  Evaluation  ──→  Emotion  ──→  Decision  ──→  Action
+Memory (accumulates)┘                                                     │
        ▲                                                                  ▼
-       └──────────────  se vuelve memoria  ◀───────  Mundo + Eventos  ◀──┘
+       └──────────────  becomes memory  ◀──────  World + Events  ◀───────┘
 ```
 
-La heterogeneidad nace de combinar tres escalas: rasgo (fijo), memoria (acumula), emoción (decae). Dos agentes idénticos hoy actúan distinto porque vivieron cosas distintas.
+Heterogeneity arises from combining three scales: trait (fixed), memory (accumulates),
+emotion (decays). Two identical agents today act differently because they lived
+different things.
 
 ---
 
-# Recursos Fundamentales
+# Fundamental Resources
 
-## Dinero
-Aumenta con trabajo, negocios e inversiones. Disminuye con consumo, transporte, vivienda y salud.
+## Money
+Increases with work, business and investment. Decreases with consumption, transport,
+housing and health.
 
-## Tiempo
-Recurso limitado. Toda actividad lo consume.
+## Time
+A limited resource. Every activity consumes it.
 
-## Energía
-Fatiga física y mental. Se recupera con sueño, descanso y vacaciones. Se consume con trabajo, estudio, traslados y estrés.
+## Energy
+Physical and mental fatigue. Recovered through sleep, rest and vacation. Consumed by
+work, study, commuting and stress.
 
-## Bienestar — REVISADO
-Indicador global de calidad de vida. En la v2 depende de:
+## Wellbeing — REVISED
+Global quality-of-life indicator. In v2 it depends on:
 
 ```text
-Salud
-Satisfacción de necesidades psicológicas (pertenencia, autonomía, propósito, seguridad, estímulo)
-Relaciones (calidad y cantidad de vínculos activos)
-Economía
-Descanso
+Health
+Satisfaction of psychological needs (belonging, autonomy, purpose, security, stimulation)
+Relationships (quality and quantity of active bonds)
+Economy
+Rest
 ```
 
-Ponderado por los rasgos del agente. Un agente sociable sufre más el aislamiento; uno ambicioso, el estancamiento.
+Weighted by the agent's traits. A sociable agent suffers more from isolation; an
+ambitious one, from stagnation.
 
 ---
 
-# Sistema de Causalidad — CONSERVADO Y AMPLIADO
+# Causality System — PRESERVED AND EXTENDED
 
-No almacenar estados psicológicos arbitrarios. Los estados emocionales emergen de condiciones observables.
-
-```text
-Incorrecto:  Persona triste
-Correcto:    Desempleo + bajos ingresos + problemas familiares → ↓ bienestar
-Ampliado:    + alta resiliencia → recuperación más rápida
-             + bajo apoyo social → recuperación más lenta y contagio al hogar
-```
-
----
-
-# Emoción Transitoria — NUEVO
-
-Señales de corta duración que emergen de la brecha entre expectativa y resultado:
+Do not store arbitrary psychological states. Emotional states emerge from observable
+conditions.
 
 ```text
-Perdí algo que esperaba conservar   → pena
-Logré algo improbable               → euforia
-Esperaba ayuda y no llegó           → frustración
-```
-
-- Sesgan las decisiones **mientras duran**.
-- **Decaen** con el tiempo; la velocidad de decaimiento la fija el rasgo de resiliencia.
-- Nunca se almacenan como estado fijo: se recalculan cada tick.
-
----
-
-# Contagio Social — NUEVO
-
-Estados de ánimo y conductas se difunden por la red de relaciones, con intensidad proporcional a la fuerza del vínculo.
-
-De aquí emergen los **fenómenos colectivos**: olas de pesimismo en un barrio golpeado económicamente, optimismo que se propaga, pánico, modas. Es la pieza que conecta lo individual con lo emergente-colectivo de la visión.
-
----
-
-# Sistema de Muerte — NUEVO
-
-En la v1 la muerte sería un `delete` con un ajuste de ingresos. En la v2 es un sistema con cola larga de consecuencias.
-
-## La muerte emerge, no se agenda
-
-```text
-Riesgo acumulado de salud:  edad + hábitos + estrés sostenido + acceso a salud
-Eventos agudos:             accidentes (según seguridad / movilidad)
-Factores de riesgo:         aislamiento prolongado, bienestar crónicamente bajo
-```
-
-> Los factores psicosociales entran como **uno más entre varios** factores de riesgo de salud, tratados con sobriedad. No se modela un "la tristeza mata" mecánico.
-
-## Efectos posteriores (lo que la hace pesar)
-
-```text
-Duelo            en los conectados, escalado por fuerza del vínculo,
-                 decae según la resiliencia de cada uno
-Vacante de rol   ¿quién hace el trabajo? ¿quién cuida a los hijos?
-Shock económico  pérdida de ingresos + herencia
-Hogar            reestructuración o disolución, posible mudanza
-Huella           la memoria del fallecido sigue afectando decisiones de los vivos
-Macro            cambia la pirámide poblacional → mercado laboral → economía
-```
-
-La muerte deja de ser un borrado y se vuelve un sistema cuyas consecuencias se propagan en el tiempo y en la red.
-
----
-
-# Evolución Temporal y Persistencia Offline — REVISADO
-
-La ciudad sigue evolucionando aunque el usuario cierre la sesión. Al reingresar **no** se simulan todos los segundos transcurridos: se calcula un estado consistente proyectado.
-
-```text
-Usuario sale:  1 junio 2026
-Usuario vuelve: 10 junio 2026
-La simulación calcula los efectos acumulados de esos días.
-```
-
-## Estrategia de proyección (mayor riesgo técnico del proyecto)
-
-Separar procesos por naturaleza y proyectar cada uno con su método:
-
-```text
-Deterministas (calculables en salto):
-  envejecimiento, contratos, pagos recurrentes, demografía base
-
-Estocásticos (muestreados, no simulados tick a tick):
-  accidentes, encuentros sociales, eventos de salud agudos
+Incorrect:  Sad person
+Correct:    Unemployment + low income + family problems → ↓ wellbeing
+Extended:   + high resilience → faster recovery
+            + low social support → slower recovery and contagion to household
 ```
 
 ---
 
-# Capas — REVISADO (módulos activables, no fases)
+# Transient Emotion — NEW
 
-Implementar como flags para validar el MVP con la Capa 1 activa y encender el resto sin reescribir el motor.
+Short-lived signals that emerge from the gap between expectation and outcome:
 
 ```text
-Capa 1  Personas · Hogares · Trabajo · Movilidad
-Capa 2  Ingresos · Gastos · Ahorro · Comercio
-Capa 3  Clima · Consumo energético · Agua · Gas · Electricidad
-Capa 4  Relaciones · Amistades · Parejas · Redes de apoyo
-Capa 5  Salud física · Salud mental · Hábitos
-Capa 6  Seguridad · Accidentes · Infracciones · Patrullas · Cámaras
+Lost something I expected to keep   → grief
+Achieved something unlikely         → euphoria
+Expected help that did not arrive   → frustration
+```
+
+- Bias decisions **while they last**.
+- **Decay** over time; the decay rate is set by the resilience trait.
+- Never stored as fixed state: recomputed every tick.
+
+---
+
+# Social Contagion — NEW
+
+Moods and behaviors spread through the relationship network, with intensity proportional
+to bond strength.
+
+This is where **collective phenomena** emerge: waves of pessimism in an economically
+battered neighborhood, spreading optimism, panic, trends. It is the piece that connects
+the individual with the emergent-collective dimension of the vision.
+
+---
+
+# Death System — NEW
+
+In v1 death would be a `delete` with an income adjustment. In v2 it is a system with a
+long tail of consequences.
+
+## Death emerges, it is not scheduled
+
+```text
+Accumulated health risk:  age + habits + sustained stress + healthcare access
+Acute events:             accidents (based on safety / mobility)
+Risk factors:             prolonged isolation, chronically low wellbeing
+```
+
+> Psychosocial factors enter as **one among several** health risk factors, treated with
+> restraint. A mechanical "sadness kills" is not modeled.
+
+## Downstream effects (what makes it weigh)
+
+```text
+Grief          in those connected, scaled by bond strength,
+               decays according to each person's resilience
+Role vacancy   who does the work? who cares for the children?
+Economic shock loss of income + inheritance
+Household      restructuring or dissolution, possible relocation
+Trace          the memory of the deceased keeps affecting the decisions of the living
+Macro          changes the population pyramid → labor market → economy
+```
+
+Death stops being an erasure and becomes a system whose consequences propagate through
+time and the network.
+
+---
+
+# Temporal Evolution and Offline Persistence — REVISED
+
+The city keeps evolving even when the user closes the session. On returning, **not**
+every elapsed second is simulated: a consistent projected state is computed.
+
+```text
+User leaves:   June 1, 2026
+User returns:  June 10, 2026
+The simulation computes the accumulated effects of those days.
+```
+
+## Projection strategy (the project's biggest technical risk)
+
+Separate processes by nature and project each with its own method:
+
+```text
+Deterministic (computable in a jump):
+  aging, contracts, recurring payments, base demographics
+
+Stochastic (sampled, not simulated tick by tick):
+  accidents, social encounters, acute health events
 ```
 
 ---
 
-# Observadores
+# Layers — REVISED (activatable modules, not phases)
 
-La simulación es única; las vistas cambian según el rol.
+Implement as flags to validate the MVP with Layer 1 active and enable the rest without
+rewriting the engine.
 
 ```text
-Ciudadano          Trabajo · Familia · Transporte
-Policía            Incidentes · Patrullas · Alertas
-Operador Cámaras   Eventos · Monitoreo · Flujos urbanos
-Empresa            Clientes · Demanda · Costos
-Analista Urbano    Movilidad · Energía · Economía · Demografía
+Layer 1  Persons · Households · Work · Mobility
+Layer 2  Income · Expenses · Savings · Commerce
+Layer 3  Climate · Energy consumption · Water · Gas · Electricity
+Layer 4  Relationships · Friendships · Partners · Support networks
+Layer 5  Physical health · Mental health · Habits
+Layer 6  Safety · Accidents · Violations · Patrols · Cameras
 ```
 
 ---
 
-# Principio de Escalabilidad — CONSERVADO
+# Observers
 
-No simular todo al máximo detalle. Usar niveles de abstracción:
-
-```text
-Nivel 1  Estadísticas agregadas
-Nivel 2  Hogares
-Nivel 3  Personas individuales
-Nivel 4  Personas activas cerca del usuario
-```
-
-La complejidad sube solo cuando es necesario.
-
----
-
-# MVP Inicial
-
-## Escala
+The simulation is singular; views change according to role.
 
 ```text
-100 personas · 30 hogares · 20 empresas · 1 barrio
-```
-
-Objetivo: simular un año completo de evolución social, económica y laboral.
-
-## Orden de implementación recomendado — NUEVO
-
-El riesgo de agregar todo de golpe es no poder distinguir emergencia genuina de un bug. Encender por etapas y validar entre cada una:
-
-```text
-1. Motor base + rasgos + necesidades no económicas
-   → Validar: ¿los agentes se ven distintos entre sí?
-2. Memoria episódica + objetivos dinámicos
-   → Validar: ¿el pasado cambia el presente?
-3. Emoción transitoria + decisión satisfaciente
-   → Validar: ¿hay irracionalidad creíble?
-4. Relaciones con peso + contagio social
-   → Validar: ¿emergen fenómenos colectivos?
-5. Sistema de muerte completo
-   → Validar: ¿una muerte genera ondas en la red y la economía?
+Citizen          Work · Family · Transport
+Police           Incidents · Patrols · Alerts
+Camera Operator  Events · Monitoring · Urban flows
+Business         Customers · Demand · Costs
+Urban Analyst    Mobility · Energy · Economy · Demographics
 ```
 
 ---
 
-# Meta Final
+# Scalability Principle — PRESERVED
 
-Construir una ciudad persistente donde las personas nacen, trabajan, estudian, forman relaciones, consumen recursos, envejecen, **recuerdan, sienten, deciden con sesgo**, influyen en otros, modifican la economía, transforman barrios, generan fenómenos colectivos y mueren dejando huella.
+Do not simulate everything at maximum detail. Use levels of abstraction:
 
-Todo a partir de reglas simples y consistentes.
+```text
+Level 1  Aggregate statistics
+Level 2  Households
+Level 3  Individual persons
+Level 4  Active persons near the user
+```
 
-> La ciudad no existe para el jugador. El jugador existe dentro de la ciudad.
+Complexity only increases when necessary.
+
+---
+
+# Initial MVP
+
+## Scale
+
+```text
+100 persons · 30 households · 20 businesses · 1 neighborhood
+```
+
+Goal: simulate one full year of social, economic and labor evolution.
+
+## Recommended implementation order — NEW
+
+The risk of adding everything at once is being unable to distinguish genuine emergence
+from a bug. Enable in stages and validate between each one:
+
+```text
+1. Base engine + traits + non-economic needs
+   → Validate: do agents look distinct from each other?
+2. Episodic memory + dynamic goals
+   → Validate: does the past change the present?
+3. Transient emotion + satisficing decision
+   → Validate: is there credible irrationality?
+4. Weighted relationships + social contagion
+   → Validate: do collective phenomena emerge?
+5. Complete death system
+   → Validate: does a death generate ripples in the network and economy?
+```
+
+---
+
+# Final Goal
+
+Build a persistent city where people are born, work, study, form relationships, consume
+resources, age, **remember, feel, decide with bias**, influence others, shape the
+economy, transform neighborhoods, generate collective phenomena and die leaving a trace.
+
+All from simple, consistent rules.
+
+> The city does not exist for the player. The player exists inside the city.

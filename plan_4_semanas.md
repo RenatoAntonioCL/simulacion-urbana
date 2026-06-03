@@ -1,164 +1,212 @@
-# Plan de Ejecución — MVP Simulación Urbana (4 semanas)
+# Execution Plan — Urban Simulation MVP (4 weeks)
 
-> Objetivo: pasar de idea a un MVP que **corre, es reproducible y no está plano**, avanzando con constancia y sin deuda técnica. Un hito validable por semana. No se avanza con el cimiento roto.
+> Goal: go from idea to an MVP that **runs, is reproducible and is not flat**, advancing
+> steadily and without technical debt. One validatable milestone per week. Do not advance
+> with a broken foundation.
 
 ---
 
-## Filosofía del plan
+## Plan philosophy
 
-- **Ritmo piola, no crunch.** El plan asume ~2 bloques de trabajo enfocados por semana, no una maratón diaria. Mejor poco y sólido que mucho y frágil.
-- **Validación por semana (gate).** Cada semana cierra con una pregunta de sí/no. Si la respuesta es "no", se arregla antes de avanzar. Eso es lo que evita la deuda.
-- **La riqueza de los agentes es la prioridad.** La economía se mantiene mínima (solo Capa 1). El foco es que la gente no sea plana, que es el corazón del proyecto.
+- **Steady pace, no crunch.** The plan assumes ~2 focused work blocks per week, not a
+  daily marathon. Better small and solid than large and fragile.
+- **Weekly validation (gate).** Each week closes with a yes/no question. If the answer
+  is "no", fix it before moving on. That is what prevents debt.
+- **Agent richness is the priority.** The economy stays minimal (Layer 1 only). The
+  focus is on people not being flat, which is the heart of the project.
 
-## Stack recomendado (asumido)
+## Recommended stack (assumed)
 
-A escala MVP (100 personas) el rendimiento no es problema, así que se prioriza velocidad de iteración:
+At MVP scale (100 people) performance is not a problem, so iteration speed is prioritized:
 
 ```text
-Lenguaje      Python 3.11+
-Modelos       dataclasses (o pydantic si se quiere validación)
-Aleatoriedad  un único random.Random(seed) inyectado, nunca el global
+Language      Python 3.11+
+Models        dataclasses (or pydantic if validation is wanted)
+Randomness    a single random.Random(seed) injected, never the global one
 Tests         pytest
-Persistencia  JSON para empezar; SQLite si se necesita consultar
-Dependencias  mínimas; nada de frameworks de simulación pesados aún
+Persistence   JSON to start; SQLite if querying is needed
+Dependencies  minimal; no heavy simulation frameworks yet
 ```
 
-La arquitectura es portable: si más adelante el bottleneck aparece, el núcleo se reescribe en otro lenguaje sin tocar el diseño.
+The architecture is portable: if a bottleneck appears later, the core can be rewritten
+in another language without touching the design.
 
 ---
 
-## La espina anti-deuda técnica (todas las semanas)
+## The anti-debt backbone (every week)
 
-Estas tres prácticas se montan en la Semana 1 y se mantienen siempre. Son baratas de poner al inicio y carísimas de retrofittear después.
+These three practices are put in place in Week 1 and maintained throughout. They are
+cheap to set up at the start and very expensive to retrofit later.
 
-1. **Determinismo con semilla.** Toda la aleatoriedad pasa por un único generador con `seed` fija. Mismo seed → mismo run. Cualquier bug se reproduce exacto.
-2. **Eventos como fuente de verdad.** Ningún sistema muta el estado por su cuenta: todo cambio relevante se emite como `Event` y se aplica desde ahí. Permite auditar *por qué* pasó cada cosa y, más adelante, la proyección offline.
-3. **Tests de invariantes.** Propiedades que nunca deben romperse, chequeadas en cada run:
-   - Conservación de dinero (no aparece ni desaparece sin un evento que lo explique).
-   - Cuadre poblacional (vivos + muertos = nacidos, sin fugas).
-   - Rangos válidos (energía, bienestar, salud dentro de `[0, 1]`; edad ≥ 0).
-   - Integridad referencial (toda relación apunta a personas existentes).
+1. **Determinism with a seed.** All randomness goes through a single generator with a
+   fixed `seed`. Same seed → same run. Any bug is exactly reproducible.
+2. **Events as source of truth.** No system mutates state on its own: every relevant
+   change is emitted as an `Event` and applied from there. This allows auditing *why*
+   each thing happened and, later, the offline projection.
+3. **Invariant tests.** Properties that must never be violated, checked on every run:
+   - Money conservation (money does not appear or disappear without an event explaining it).
+   - Population balance (alive + dead = born, no leaks).
+   - Valid ranges (energy, wellbeing, health within `[0, 1]`; age ≥ 0).
+   - Referential integrity (every relationship points to existing persons).
 
-Regla de oro: **si un test de invariante falla, se para y se arregla. No se acumula.**
+Golden rule: **if an invariant test fails, stop and fix it. Do not accumulate debt.**
 
 ---
 
-## Arquitectura base
+## Base architecture
 
-Separación limpia desde el inicio para que cada sistema sea testeable y reemplazable.
+Clean separation from the start so that each system is testable and replaceable.
 
 ```text
-state/        Modelos de datos puros (Person, Household, Place, Event, Relationship).
-              Sin lógica. Solo datos.
+state/        Pure data models (Person, Household, Place, Event, Relationship).
+              No logic. Data only.
 
-systems/      Las reglas. Funciones puras: reciben estado, devuelven eventos.
+systems/      The rules. Pure functions: receive state, return events.
               update_persons, decide_actions, economy_step, death_system, etc.
 
-scheduler/    El reloj. Orquesta los ticks en sus distintas escalas
-              (horario, diario, mensual, poblacional) y llama a los systems en orden.
+scheduler/    The clock. Orchestrates ticks at their different scales
+              (hourly, daily, monthly, population) and calls systems in order.
 
-eventlog/     El registro. Aplica eventos al estado y guarda el historial.
+eventlog/     The registry. Applies events to state and saves the history.
 
-projector/    (Semana 4) Calcula el estado proyectado para la persistencia offline.
+projector/    (Week 4) Computes the projected state for offline persistence.
 
-observers/    (Semana 4) Vistas de solo-lectura sobre el estado. Una sola para el MVP.
+observers/    (Week 4) Read-only views over the state. Just one for the MVP.
 ```
 
-Principio: los `systems` no mutan estado directamente; **emiten eventos** y el `eventlog` los aplica. Así el flujo es siempre auditable.
+Principle: `systems` do not mutate state directly; they **emit events** and the
+`eventlog` applies them. This way the flow is always auditable.
 
 ---
 
-# Semana 1 — Núcleo determinista
+# Week 1 — Deterministic core
 
-**Meta:** un mundo que tickea de forma determinista y registra eventos. Sin comportamiento aún: solo el esqueleto que late.
+**Goal:** a world that ticks deterministically and records events. No behavior yet:
+just the skeleton that beats.
 
-### Tareas
-- Scaffolding del repo, entorno, `pytest`, estructura de carpetas de la arquitectura base.
-- Modelos de datos de las entidades: `Person`, `Household`, `Place`, `Event` (solo estado, sin rasgos aún).
-- Generador aleatorio con semilla, inyectado en todo el sistema.
-- `eventlog`: emitir, aplicar y guardar eventos.
-- `scheduler`: el loop de ticks con escalas múltiples (horaria para conducta, diaria/mensual/poblacional para el resto).
-- Seeder: generar la población inicial (100 personas, 30 hogares, 20 empresas, 1 barrio) de forma determinista.
-- Primeros tests de invariantes (cuadre poblacional, rangos válidos).
+### Tasks
+- Repo scaffolding, environment, `pytest`, folder structure of the base architecture.
+- Data models for the entities: `Person`, `Household`, `Place`, `Event` (state only,
+  no traits yet).
+- Random generator with seed, injected throughout the system.
+- `eventlog`: emit, apply and save events.
+- `scheduler`: the tick loop with multiple scales (hourly for behavior,
+  daily/monthly/population for the rest).
+- Seeder: generate the initial population (100 persons, 30 households, 20 businesses,
+  1 neighborhood) deterministically.
+- First invariant tests (population balance, valid ranges).
 
-### Fuera de alcance esta semana
-Cualquier decisión de los agentes. Esta semana el mundo solo envejece y registra el paso del tiempo.
+### Out of scope this week
+Any agent decisions. This week the world only ages and records the passage of time.
 
-### Gate de validación
-> **¿El mundo tickea de forma determinista y reproducible?** Dos runs con el mismo seed producen exactamente el mismo log de eventos. Los invariantes pasan tras simular un año.
-
----
-
-# Semana 2 — Identidad (rasgos + necesidades)
-
-**Meta:** que los agentes se vean distintos entre sí. Este es el hito que rompe la planitud.
-
-### Tareas
-- Agregar **rasgos** a `Person` (sociabilidad, ambición, tolerancia al riesgo, escrupulosidad, resiliencia), fijados al nacer con variación poblacional.
-- Agregar **necesidades psicológicas** (pertenencia, autonomía, propósito, seguridad, estímulo).
-- Reescribir la función de **bienestar** para que dependa de las necesidades ponderadas por los rasgos, no solo del dinero.
-- Bucle de **decisión satisficiente** básico: el agente elige la primera opción "suficientemente buena" según sus pesos personales (todavía sin emoción ni memoria).
-- Economía mínima (Capa 1): trabajo genera ingreso, consumo gasta. Lo justo para que las decisiones tengan consecuencia.
-
-### Fuera de alcance esta semana
-Memoria, emoción, relaciones con peso. Solo rasgos estáticos + necesidades + decisión acotada.
-
-### Gate de validación
-> **¿Los agentes se ven distintos entre sí?** Tomar dos agentes con economía similar pero rasgos opuestos y verificar que toman decisiones distintas de forma consistente (ej: el ambicioso trabaja más horas, el sociable prioriza vínculos). Si todos convergen al mismo patrón, los pesos no están funcionando.
+### Validation gate
+> **Does the world tick deterministically and reproducibly?** Two runs with the same
+> seed produce exactly the same event log. Invariants pass after simulating one year.
 
 ---
 
-# Semana 3 — Trayectoria (memoria + emoción + objetivos)
+# Week 2 — Identity (traits + needs)
 
-**Meta:** que el pasado vivido cambie el comportamiento presente, y que aparezca irracionalidad creíble.
+**Goal:** agents look distinct from each other. This is the milestone that breaks flatness.
 
-### Tareas
-- **Memoria episódica** por agente: copiar a su memoria los eventos significativos, con peso que decae en el tiempo (no se borra, se atenúa).
-- **Emoción transitoria**: señal que emerge de la brecha esperado-vs-real (appraisal), sesga la decisión mientras dura, y decae a una velocidad que fija la resiliencia del agente. Nunca se almacena como estado fijo: se recalcula cada tick.
-- **Objetivos dinámicos**: metas que se forman, persiguen, logran o abandonan. Cumplir/frustrar una meta mueve el bienestar.
-- Conectar memoria → decisión: un evento negativo pasado sesga decisiones futuras (ej: un despido aumenta la aversión al riesgo).
+### Tasks
+- Add **traits** to `Person` (sociability, ambition, risk tolerance, conscientiousness,
+  resilience), fixed at birth with population-level variation.
+- Add **psychological needs** (belonging, autonomy, purpose, security, stimulation).
+- Rewrite the **wellbeing** function so it depends on needs weighted by traits, not
+  just money.
+- Basic **satisficing decision** loop: the agent chooses the first option that is "good
+  enough" according to its personal weights (still no emotion or memory).
+- Minimal economy (Layer 1): work generates income, consumption spends. Just enough for
+  decisions to have consequences.
 
-### Fuera de alcance esta semana
-Contagio y muerte. Esta semana es sobre el individuo a través del tiempo.
+### Out of scope this week
+Memory, emotion, weighted relationships. Only static traits + needs + bounded decision.
 
-### Gate de validación
-> **¿El pasado pesa?** Dos agentes idénticos en rasgos pero con historias distintas (uno con un despido reciente, otro sin él) deben comportarse distinto hoy. Y verificar que la emoción decae: tras un shock, el bienestar se recupera con el tiempo a ritmo coherente con la resiliencia.
-
----
-
-# Semana 4 — Sociedad (vínculos + contagio + muerte) y cierre
-
-**Meta:** que las acciones tengan repercusión en la red, que emerjan fenómenos colectivos, y que la muerte pese. Cerrar con un run completo de un año.
-
-### Tareas
-- Entidad **`Relationship`** con tipo, fuerza, reciprocidad e historia.
-- **Contagio social**: estados de ánimo y conductas se difunden por la red, proporcional a la fuerza del vínculo.
-- **Sistema de muerte** completo:
-  - Emerge de riesgo acumulado de salud (edad, hábitos, estrés sostenido, acceso a salud) + eventos agudos. Factores psicosociales entran como uno más entre varios, con sobriedad.
-  - Efectos posteriores: duelo en los conectados (escalado por vínculo, decae por resiliencia), vacante de rol, shock económico y herencia, reestructuración del hogar, huella persistente en la memoria de los vivos.
-- **Proyección offline** (`projector`): separar procesos deterministas (envejecimiento, contratos, demografía) de estocásticos (accidentes, encuentros) y proyectar cada uno con su método al reconectar.
-- **Una vista de observador** (la de Ciudadano o Analista) para poder *ver* lo que está pasando.
-- Run de validación: simular un año completo y revisar los fenómenos emergentes.
-
-### Fuera de alcance esta semana (y del MVP)
-Capas 3 (clima/energía), 5 (salud detallada) y 6 (seguridad); el resto de observadores; persistencia en base de datos robusta; UI más allá de una vista básica.
-
-### Gate de validación
-> **¿La red reacciona?** Provocar una muerte de un agente bien conectado y verificar que: el duelo se propaga proporcional a los vínculos, el hogar se reestructura, hay efecto económico, y la huella persiste. Verificar también que tras un shock económico de barrio emerge una caída de ánimo colectiva (contagio), no solo individual.
+### Validation gate
+> **Do agents look distinct from each other?** Take two agents with similar economy but
+> opposite traits and verify they make different decisions consistently (e.g.: the
+> ambitious one works more hours, the sociable one prioritizes bonds). If they all
+> converge to the same pattern, the weights are not working.
 
 ---
 
-## Después de las 4 semanas
+# Week 3 — Trajectory (memory + emotion + goals)
 
-Si los cuatro gates pasan, tienes un MVP que corre un año de forma reproducible, con agentes que se ven distintos, recuerdan, sienten, se influyen y mueren dejando huella. Desde ahí, los siguientes pasos naturales (no parte de este plan):
+**Goal:** past lived experience changes present behavior, and credible irrationality emerges.
 
-- Encender la Capa 2 (economía más rica: ahorro, comercio, inversión).
-- Más observadores y una UI de verdad.
-- Capas 3/5/6 como módulos activables.
-- Profundizar la proyección offline para ausencias largas.
+### Tasks
+- **Episodic memory** per agent: copy significant events to the agent's memory, with
+  weight that decays over time (not erased, attenuated).
+- **Transient emotion**: a signal that emerges from the expected-vs-actual gap
+  (appraisal), biases decisions while it lasts, and decays at a rate set by the agent's
+  resilience. Never stored as fixed state: recomputed every tick.
+- **Dynamic goals**: targets that form, are pursued, achieved or abandoned. Achieving
+  or failing a goal moves wellbeing.
+- Connect memory → decision: a past negative event biases future decisions (e.g.: a
+  layoff increases risk aversion).
 
-## Riesgos a vigilar
+### Out of scope this week
+Contagion and death. This week is about the individual through time.
 
-- **Sobre-ingeniería temprana.** A 100 agentes, optimizar es perder tiempo. Resistir la tentación.
-- **Encender todo de golpe.** Si saltas un gate, no vas a poder distinguir emergencia genuina de un bug. El orden importa.
-- **Que la economía se coma el foco.** Es fácil que el modelo económico crezca y absorba el tiempo que debería ir a la riqueza de los agentes. Mantenerla mínima en el MVP.
+### Validation gate
+> **Does the past weigh in?** Two agents identical in traits but with different histories
+> (one with a recent layoff, one without) must behave differently today. And verify that
+> emotion decays: after a shock, wellbeing recovers over time at a rate consistent with
+> resilience.
+
+---
+
+# Week 4 — Society (bonds + contagion + death) and close
+
+**Goal:** actions have repercussions in the network, collective phenomena emerge, and
+death carries weight. Close with a complete one-year run.
+
+### Tasks
+- **`Relationship`** entity with type, strength, reciprocity and history.
+- **Social contagion**: moods and behaviors spread through the network, proportional to
+  bond strength.
+- **Complete death system**:
+  - Emerges from accumulated health risk (age, habits, sustained stress, healthcare
+    access) + acute events. Psychosocial factors enter as one among several, with
+    restraint.
+  - Downstream effects: grief in those connected (scaled by bond, decays by resilience),
+    role vacancy, economic shock and inheritance, household restructuring, persistent
+    trace in the memory of the living.
+- **Offline projection** (`projector`): separate deterministic processes (aging,
+  contracts, demographics) from stochastic ones (accidents, encounters) and project each
+  with its own method on reconnection.
+- **One observer view** (Citizen or Analyst) to be able to *see* what is happening.
+- Validation run: simulate one full year and review the emergent phenomena.
+
+### Out of scope this week (and from the MVP)
+Layers 3 (climate/energy), 5 (detailed health) and 6 (security); remaining observers;
+robust database persistence; UI beyond a basic view.
+
+### Validation gate
+> **Does the network react?** Trigger a death of a well-connected agent and verify that:
+> grief propagates proportionally to bonds, the household restructures, there is an
+> economic effect, and the trace persists. Also verify that after a neighborhood economic
+> shock a collective mood drop emerges (contagion), not just an individual one.
+
+---
+
+## After the 4 weeks
+
+If all four gates pass, you have an MVP that runs one year reproducibly, with agents
+that look distinct, remember, feel, influence each other and die leaving a trace. From
+there, the natural next steps (not part of this plan):
+
+- Enable Layer 2 (richer economy: savings, commerce, investment).
+- More observers and a real UI.
+- Layers 3/5/6 as activatable modules.
+- Deeper offline projection for long absences.
+
+## Risks to watch
+
+- **Premature over-engineering.** At 100 agents, optimizing wastes time. Resist the
+  temptation.
+- **Activating everything at once.** If you skip a gate, you will not be able to
+  distinguish genuine emergence from a bug. Order matters.
+- **Economy consuming the focus.** It is easy for the economic model to grow and absorb
+  the time that should go toward agent richness. Keep it minimal in the MVP.

@@ -1,292 +1,289 @@
-# Registro de Decisiones de Arquitectura (ADR)
+# Architecture Decision Records (ADR)
 
-> Cada decisión estructural significativa se registra aquí con su contexto y
-> consecuencias. Formato ligero estilo ADR. El **qué** está en
-> [ARCHITECTURE.md](./ARCHITECTURE.md); aquí vive el **porqué**.
+> Each significant structural decision is recorded here with its context and
+> consequences. Lightweight ADR-style format. The **what** is in
+> [ARCHITECTURE.md](./ARCHITECTURE.md); the **why** lives here.
 
-Estados posibles: `Propuesta` · `Aceptada` · `Reemplazada por ADR-XXXX` · `Obsoleta`.
-
----
-
-## ADR-0001 — Eventos como única fuente de verdad
-
-- **Estado:** Aceptada
-- **Contexto:** Si cada system muta el estado por su cuenta, es imposible auditar por
-  qué cambió algo, reproducir bugs o construir la proyección offline.
-- **Decisión:** Ningún system muta el estado. Los systems **emiten** `Event`; solo
-  `eventlog/apply.py` aplica eventos al `World`.
-- **Consecuencias:**
-  - (+) Auditoría causal completa; reproducibilidad; base para la proyección offline.
-  - (+) Cada cambio es testeable de forma aislada (evento → efecto esperado).
-  - (−) Más verboso: todo cambio requiere definir un `EventType` y su aplicador.
-  - (−) Cuidado con el orden de aplicación dentro de un tick (lo fija el scheduler).
+Possible states: `Proposed` · `Accepted` · `Superseded by ADR-XXXX` · `Obsolete`.
 
 ---
 
-## ADR-0002 — Determinismo con un único RNG sembrado e inyectado
+## ADR-0001 — Events as the single source of truth
 
-- **Estado:** Aceptada
-- **Contexto:** El proyecto necesita distinguir emergencia genuina de bug. Sin
-  reproducibilidad exacta, eso es imposible.
-- **Decisión:** Un único `random.Random(seed)` creado al arranque e inyectado vía
-  `TickContext`. Prohibido el `random` global o instancias ad-hoc. Los sub-streams se
-  derivan de forma determinista del seed maestro.
-- **Consecuencias:**
-  - (+) Mismo seed ⇒ mismo log de eventos, bit a bit. Bugs reproducibles.
-  - (−) Disciplina permanente: cualquier `import random` suelto rompe la garantía
-    (se vigila en revisión y, idealmente, con un test/lint).
-
----
-
-## ADR-0003 — `state/` son datos puros; la lógica vive en `systems/`
-
-- **Estado:** Aceptada
-- **Contexto:** Mezclar datos y comportamiento en las entidades dificulta serializar,
-  testear y reemplazar reglas.
-- **Decisión:** Las entidades son `dataclass` sin métodos de negocio. Toda regla es
-  una función pura en `systems/` con firma `(World, TickContext) -> list[Event]`.
-- **Consecuencias:**
-  - (+) Serialización trivial (JSON), tests simples, reglas intercambiables.
-  - (+) Encaja con ADR-0001: los systems no pueden mutar porque no tienen métodos.
-  - (−) Algo de fricción ergonómica (no hay `person.trabajar()`).
+- **Status:** Accepted
+- **Context:** If each system mutates state on its own, it is impossible to audit why
+  something changed, reproduce bugs or build the offline projection.
+- **Decision:** No system mutates state. Systems **emit** `Event`; only
+  `eventlog/apply.py` applies events to the `World`.
+- **Consequences:**
+  - (+) Full causal auditability; reproducibility; foundation for offline projection.
+  - (+) Each change is testable in isolation (event → expected effect).
+  - (−) More verbose: every change requires defining an `EventType` and its applier.
+  - (−) Care needed with application order within a tick (fixed by the scheduler).
 
 ---
 
-## ADR-0004 — Referencias entre entidades por `id`, no por puntero
+## ADR-0002 — Determinism with a single seeded and injected RNG
 
-- **Estado:** Aceptada
-- **Contexto:** El estado debe ser serializable y la integridad referencial,
-  testeable.
-- **Decisión:** Cada entidad tiene un `id` estable. Las relaciones, hogares y lugares
-  referencian a otras entidades por `id`. El `World` mantiene los índices.
-- **Consecuencias:**
-  - (+) Estado serializable; invariante de integridad referencial chequeable.
-  - (−) Indirección: hay que resolver ids contra los índices del `World`.
-
----
-
-## ADR-0005 — Capas como flags activables, no como fases de código
-
-- **Estado:** Aceptada
-- **Contexto:** La visión define 6 capas. Tratarlas como fases secuenciales obligaría
-  a reescribir el motor para encender cada una.
-- **Decisión:** El motor no conoce las capas. Cada system declara su capa; el
-  scheduler corre solo los systems cuyo flag esté activo en `config.py`.
-- **Consecuencias:**
-  - (+) Se valida el MVP con Capa 1 y se enciende el resto sin tocar el núcleo.
-  - (+) Permite aislar variables al depurar emergencia (encender de a una).
-  - (−) Hay que mantener los flags y las dependencias entre capas coherentes.
+- **Status:** Accepted
+- **Context:** The project needs to distinguish genuine emergence from bugs. Without
+  exact reproducibility, that is impossible.
+- **Decision:** A single `random.Random(seed)` created at startup and injected via
+  `TickContext`. Global `random` or ad-hoc instances are forbidden. Sub-streams are
+  derived deterministically from the master seed.
+- **Consequences:**
+  - (+) Same seed ⇒ same event log, bit for bit. Reproducible bugs.
+  - (−) Permanent discipline: any stray `import random` breaks the guarantee
+    (monitored in review and, ideally, with a test/lint).
 
 ---
 
-## ADR-0006 — Tres escalas de estado psicológico: rasgo / memoria / emoción
+## ADR-0003 — `state/` is pure data; logic lives in `systems/`
 
-- **Estado:** Aceptada
-- **Contexto:** La v1 producía agentes planos y prohibía "estados psicológicos
-  arbitrarios". Hay que dar profundidad sin violar esa prohibición.
-- **Decisión:** Separar por escala temporal:
-  - **Rasgo** — constante fijada al nacer; se almacena.
-  - **Memoria** — registro acumulativo que decae lento; se almacena.
-  - **Emoción** — señal transitoria derivada del appraisal; **nunca se almacena**, se
-    recalcula cada tick y decae a velocidad fijada por la resiliencia.
-- **Consecuencias:**
-  - (+) "Persona triste" persistida sigue prohibido; la pena emerge y decae.
-  - (+) Dos agentes idénticos hoy actúan distinto por su memoria distinta.
-  - (−) La emoción recalculada cada tick tiene costo; aceptable a escala MVP.
+- **Status:** Accepted
+- **Context:** Mixing data and behavior in entities makes it harder to serialize,
+  test and replace rules.
+- **Decision:** Entities are `dataclass` with no business methods. Every rule is a
+  pure function in `systems/` with signature `(World, TickContext) -> list[Event]`.
+- **Consequences:**
+  - (+) Trivial serialization (JSON), simple tests, interchangeable rules.
+  - (+) Fits ADR-0001: systems cannot mutate because they have no methods.
+  - (−) Some ergonomic friction (no `person.work()`).
 
 ---
 
-## ADR-0007 — Decisión satisficiente, no optimización global
+## ADR-0004 — References between entities by `id`, not by pointer
 
-- **Estado:** Aceptada
-- **Contexto:** Optimizadores globales perfectos se ven robóticos e idénticos.
-- **Decisión:** Los agentes eligen la primera opción "suficientemente buena" según
-  sus pesos personales, con información incompleta y sesgo emocional, sujeto a dinero,
-  tiempo y energía.
-- **Consecuencias:**
-  - (+) Diversidad de conducta; la irracionalidad acotada se lee como humanidad.
-  - (+) Más barato que optimizar sobre todo el espacio de acciones.
-  - (−) El umbral de "suficientemente bueno" es un parámetro a calibrar.
+- **Status:** Accepted
+- **Context:** State must be serializable and referential integrity must be testable.
+- **Decision:** Every entity has a stable `id`. Relationships, households and places
+  reference other entities by `id`. The `World` maintains the indexes.
+- **Consequences:**
+  - (+) Serializable state; referential integrity invariant is checkable.
+  - (−) Indirection: ids must be resolved against the `World` indexes.
 
 ---
 
-## ADR-0008 — Reloj multi-escala en lugar de "1 tick = 1 hora"
+## ADR-0005 — Layers as activatable flags, not code phases
 
-- **Estado:** Aceptada
-- **Contexto:** Procesos distintos (conducta vs demografía) ocurren a ritmos muy
-  distintos; simular todo a escala horaria es derrochador y poco natural.
-- **Decisión:** El scheduler avanza en ticks horarios y dispara escalas diaria,
-  mensual y poblacional en sus fronteras, corriendo los systems de cada escala.
-- **Consecuencias:**
-  - (+) Eficiencia y modelado más fiel; encaja con la proyección offline.
-  - (−) El orden y las fronteras entre escalas hay que mantenerlos explícitos.
-
----
-
-## ADR-0009 — Stack: Python 3.11+ con dependencias mínimas, JSON primero
-
-- **Estado:** Aceptada
-- **Contexto:** A 100 agentes el rendimiento no es el problema; la velocidad de
-  iteración sí. El núcleo debe ser portable si luego aparece un bottleneck.
-- **Decisión:** Python 3.11+, `dataclasses`, `pytest`, RNG sembrado, persistencia en
-  JSON (SQLite si se necesita consultar). Sin frameworks de simulación pesados.
-- **Consecuencias:**
-  - (+) Iteración rápida; barrera de entrada baja; diseño portable.
-  - (−) Reescritura futura del núcleo si se escala mucho (asumido y aceptado).
+- **Status:** Accepted
+- **Context:** The vision defines 6 layers. Treating them as sequential phases would
+  require rewriting the engine to activate each one.
+- **Decision:** The engine knows nothing about layers. Each system declares its layer;
+  the scheduler runs only the systems whose flag is active in `config.py`.
+- **Consequences:**
+  - (+) The MVP is validated with Layer 1 and the rest is toggled without touching the core.
+  - (+) Allows isolating variables when debugging emergence (activate one at a time).
+  - (−) Flags and inter-layer dependencies must be kept consistent.
 
 ---
 
-## ADR-0010 — La muerte es un sistema emergente con cola de consecuencias
+## ADR-0006 — Three scales of psychological state: trait / memory / emotion
 
-- **Estado:** Aceptada
-- **Contexto:** En la v1 la muerte sería un `delete` con ajuste de ingresos: no pesa.
-- **Decisión:** La muerte emerge de riesgo acumulado de salud (edad, hábitos, estrés,
-  acceso a salud) + eventos agudos, con factores psicosociales como uno más entre
-  varios. Dispara efectos posteriores: duelo escalado por vínculo, vacante de rol,
-  shock económico + herencia, reestructuración del hogar, huella en la memoria.
-- **Consecuencias:**
-  - (+) Una muerte genera ondas en la red y la economía (gate de Semana 4).
-  - (−) Acopla varios systems (death, relations, contagion, economy, household);
-    requiere orden de aplicación cuidadoso vía eventos.
+- **Status:** Accepted
+- **Context:** v1 produced flat agents and banned "arbitrary psychological states".
+  Depth must be added without violating that prohibition.
+- **Decision:** Separate by time scale:
+  - **Trait** — constant set at birth; stored.
+  - **Memory** — accumulative record that decays slowly; stored.
+  - **Emotion** — transient signal derived from appraisal; **never stored**, recomputed
+    every tick and decaying at a rate set by resilience.
+- **Consequences:**
+  - (+) Persisted "sad person" remains forbidden; grief emerges and decays.
+  - (+) Two identical agents today act differently because of their different memory.
+  - (−) Emotion recomputed every tick has a cost; acceptable at MVP scale.
 
-## ADR-0011 — Arquitectura núcleo / fachada / cliente
+---
 
-- **Estado:** Aceptada
-- **Contexto:** El proyecto deja de ser solo un motor que escupe un log y pasa a ser
-  una **aplicación de escritorio descargable** (Windows, macOS, Linux) donde cada
-  usuario crea y observa sus propios mundos. El horizonte incluye conectar a futuro un
-  motor gráfico (Godot/Unity). Si el núcleo de simulación y la capa visual quedan
-  acoplados, agregar o cambiar la interfaz obligaría a reescribir el motor. Hay que
-  garantizar que la interfaz sea una pieza intercambiable, no una dependencia del
-  núcleo.
-- **Decisión:** Tres anillos con dependencias en una sola dirección (de afuera hacia
-  adentro; el núcleo no conoce a nadie de afuera):
-  1. **Núcleo** (`citysim/` actual: `state`, `systems`, `eventlog`, `scheduler`,
-     `seed`, `invariants`, `rng`). No cambia. Su responsabilidad es avanzar la
-     simulación y custodiar el estado. No sabe nada de UI, ventanas ni renderizado.
-  2. **Fachada** (`citysim/facade/`): una interfaz estable y mínima — la **única**
-     superficie que los clientes pueden tocar. Expone operaciones de alto nivel (crear
-     mundo, avanzar, leer estado, leer eventos, guardar, cargar) y entrega **DTOs de
-     solo lectura**, nunca las entidades internas del `World`. Es el contrato que
-     desacopla núcleo y clientes.
-  3. **Clientes** (fuera del paquete núcleo): consumen solo la fachada. Hoy, una UI de
-     escritorio. Mañana, Godot/Unity u otros. Ninguno importa de `systems/`,
-     `eventlog/` ni toca el `World` directamente.
-- **Consecuencias:**
-  - (+) La UI es reemplazable sin tocar el motor; un motor gráfico futuro se conecta a
-    la misma fachada (es, de hecho, el puente hacia Godot/Unity).
-  - (+) La fachada es un punto natural para serializar mundos: como el núcleo es
-    determinista y sembrado (ADR-0002), un mundo se define por `config + seed`, así que
-    guardar/compartir un mundo es guardar/compartir poco. El guardado se implementa por
-    *replay* (`config + ticks`), evitando serializar punteros (ADR-0004).
-  - (+) Los DTOs de solo lectura impiden que un cliente corrompa el estado por
-    accidente, preservando ADR-0001 (eventos como única vía de cambio).
-  - (+) Testeable: la fachada se puede ejercitar sin ninguna UI montada.
-  - (−) Capa extra de mapeo (entidad interna → DTO) con algo de duplicación y costo de
-    mantenimiento cuando el estado cambie de forma.
-  - (−) Disciplina permanente: la regla "los clientes solo hablan con la fachada" hay
-    que vigilarla en revisión; un import directo a `systems/` desde un cliente la
-    rompe.
-  - (−) La fachada debe permanecer estable; cambiarla rompe a todos los clientes a la
-    vez, así que sus cambios se piensan con más cuidado que los internos.
+## ADR-0007 — Satisficing decision, not global optimization
 
-## ADR-0012 — Primer cliente visual: Pygame in-process, separado en presenter/vista
+- **Status:** Accepted
+- **Context:** Perfect global optimizers look robotic and identical.
+- **Decision:** Agents choose the first option that is "good enough" according to their
+  personal weights, with incomplete information and emotional bias, subject to money,
+  time and energy constraints.
+- **Consequences:**
+  - (+) Behavioral diversity; bounded irrationality reads as humanity.
+  - (+) Cheaper than optimizing over the full action space.
+  - (−) The "good enough" threshold is a parameter that needs calibration.
 
-- **Estado:** Aceptada
-- **Contexto:** Con la fachada lista (ADR-0011) toca la primera interfaz visual. El
-  objetivo es una aplicación de escritorio descargable y multiplataforma, con horizonte
-  a un motor gráfico (Godot/Unity). Hay que elegir herramienta para el primer cliente y
-  una estructura interna que no se vuelva un callejón sin salida. Las librerías de
-  formularios (Tkinter/Qt) sirven para paneles, no para dibujar un barrio con cosas
-  moviéndose; chocan con ese horizonte. Saltar ya a Godot agrega un puente IPC y un
-  segundo lenguaje antes de ver algo en pantalla.
-- **Decisión:** El primer cliente es **Pygame, in-process**, en un paquete separado del
-  núcleo, `citysim_desktop/`, que consume **solo** `citysim.facade` y `citysim.config`.
-  Internamente se parte en dos:
-  1. **Presenter** (`controller.py`, `layout.py`): Python puro, **sin pygame**. Maneja
-     la `Simulation`, traduce intenciones de UI a llamadas a la fachada y deriva la
-     disposición visual desde los ids (el núcleo no tiene coordenadas — ADR-0004).
-  2. **Vista** (`view.py`): Pygame. Solo dibuja lo que el presenter expone y envía input.
-  Pygame entra como **dependencia opcional** (`pip install ".[ui]"`); el núcleo y la
-  fachada siguen sin dependencias (ADR-0009).
-- **Consecuencias:**
-  - (+) Mínima fricción para validar la fachada con algo visible y empaquetable a
-    ejecutable (PyInstaller) en los tres SO.
-  - (+) El presenter, sin pygame, se testea sin display (corre en CI sin pantalla); la
-    vista queda como pieza reemplazable. El día de Godot/Unity, se cambia la vista y el
-    presenter/fachada siguen igual — es el mismo límite de ADR-0011, un nivel más arriba.
-  - (+) El núcleo no gana dependencias: `import citysim.facade` funciona sin pygame.
-  - (−) Pygame tiene techo gráfico bajo; no es un motor. El salto a Godot/Unity sigue
-    siendo trabajo aparte (su puente es la fachada).
-  - (−) Disciplina extra: hay que vigilar que la vista no filtre lógica de simulación y
-    que el cliente no importe del núcleo más allá de la fachada (cubierto por un test).
+---
 
-## ADR-0013 — Empaquetado a ejecutable con PyInstaller, build por-SO en CI
+## ADR-0008 — Multi-scale clock instead of "1 tick = 1 hour"
 
-- **Estado:** Aceptada
-- **Contexto:** El objetivo del cliente (ADR-0012) es ser una app de escritorio
-  **descargable** para Windows, macOS y Linux, sin pedirle al usuario que instale Python.
-  Empaquetar Pygame con PyInstaller tiene tropezones conocidos: las fuentes del sistema
-  pueden no estar en el binario congelado, el directorio de trabajo no es confiable al
-  lanzar con doble clic, y PyInstaller **no** cross-compila.
-- **Decisión:** Empaquetar con **PyInstaller** en modo **onefile** (un solo archivo
-  descargable), con un `.spec` versionado (`packaging/citysim-desktop.spec`) y un script
-  de entrada fino (`packaging/entry.py`). Para esquivar los tropezones:
-  - **Fuente:** la vista usa la **fuente integrada de Pygame**
-    (`pygame.font.Font(None, …)`), que viaja con Pygame; no se bundlean `.ttf` ni se usa
-    `SysFont`. Elimina la dependencia de fuentes del SO sin `--add-data`.
-  - **Guardado:** los mundos se guardan en un **directorio de datos del usuario** por SO
-    (`citysim_desktop/paths.py`), no junto al binario ni en el cwd.
-  - **Build por-SO:** un workflow `package.yml` con matriz
-    `ubuntu`/`windows`/`macos` construye un binario por plataforma (PyInstaller no
-    cross-compila). Cada job valida el binario con un modo **`--smoke`** headless
-    (`SDL_VIDEODRIVER=dummy`) que crea un mundo, avanza y sale 0; luego lo sube como
-    artifact. En tags `vX.Y.Z`, además lo adjunta a un GitHub Release.
-  - **Disparo:** solo `workflow_dispatch` y tags `v*` (no en cada PR, para no quemar
-    minutos). PyInstaller entra como extra opcional `build`; el núcleo sigue sin
-    dependencias (ADR-0009).
-- **Consecuencias:**
-  - (+) Ejecutables descargables para los tres SO, sin que el usuario instale nada.
-  - (+) El modo `--smoke` da una señal real de que el bundle arranca en cada SO, sin
-    necesidad de pantalla en CI.
-  - (+) Núcleo y fachada intactos y sin dependencias nuevas; todo el cambio vive en el
-    cliente y en `packaging/`.
-  - (−) Tres builds separados (uno por SO); no hay un único artefacto universal.
-  - (−) Los binarios no están firmados: macOS/Windows pueden advertir al abrirlos
-    (Gatekeeper/SmartScreen). Firmar/notarizar queda fuera de alcance por ahora.
-  - (−) onefile arranca algo más lento (se autoextrae); si diera problemas en algún SO,
-    el fallback documentado en el `.spec` es pasar a onedir.
+- **Status:** Accepted
+- **Context:** Different processes (behavior vs. demographics) occur at very different
+  rates; simulating everything at hourly scale is wasteful and unnatural.
+- **Decision:** The scheduler advances in hourly ticks and fires daily, monthly and
+  population scales at their boundaries, running the systems for each scale.
+- **Consequences:**
+  - (+) Efficiency and more faithful modeling; fits with offline projection.
+  - (−) Order and boundaries between scales must be kept explicit.
 
-## ADR-0014 — Identidad (Semana 2): decisión determinista, acción como estado, dinero conservado
+---
 
-- **Estado:** Aceptada
-- **Contexto:** La Semana 2 da heterogeneidad a los agentes (rasgos + necesidades +
-  bienestar + decisión + economía mínima). Hubo que resolver tres cosas: de dónde sale la
-  diversidad de decisiones, cómo conectar "decidir" con "tener consecuencia económica" sin
-  acoplar systems, y cómo evitar que el dinero se cree o destruya.
-- **Decisión:**
-  1. **Decisión determinista, no estocástica.** El system `decision` elige la primera
-     acción "suficientemente buena" (ADR-0007) puntuada por rasgos+necesidades, sin
-     `ctx.rng`. La diversidad nace de los **rasgos**, que el seeder muestrea con variación
-     poblacional del RNG sembrado (ADR-0002). Consecuencia buscada: el log ahora **diverge
-     por seed** (rasgos distintos ⇒ decisiones distintas), reforzando el determinismo de
-     punta a punta sin azar por tick.
-  2. **Economía mínima en `L1_BASE`** (como dice el plan). Corre en el MVP por defecto;
-     `L2_ECONOMY` se reserva para la economía rica (ahorro/comercio/inversión) del post-MVP.
-  3. **`Person.current_action`** como *estado de actividad* (no emoción — ADR-0006 prohíbe
-     persistir ánimo, no la actividad en curso, igual que `location_id`). `decision` la fija
-     vía el evento `ACTION_CHOSEN`; `economy` la lee para emitir `INCOME`/`EXPENSE`. Así
-     decisión y economía quedan desacopladas: se comunican por estado + eventos, no por
-     llamadas.
-  4. **Conservación de dinero** como invariante (#1 de ARCHITECTURE §10): el total actual
-     debe cuadrar con el inicial sembrado más Σ`INCOME` − Σ`EXPENSE`. El gasto se limita a
-     lo disponible (`min(costo, dinero)`) para que el cuadre sea exacto.
-- **Consecuencias:**
-  - (+) Gate de la Semana 2 verificable: rasgos opuestos ⇒ decisiones distintas y estables.
-  - (+) Determinismo más fuerte y testeable (seeds distintos ⇒ logs distintos).
-  - (+) La economía no puede "fabricar" dinero sin que un invariante lo detecte.
-  - (−) `decision`/`needs`/`wellbeing` emiten muchos eventos (por persona y tick); se
-    mitiga emitiendo needs/wellbeing solo ante cambios ≥ ε, pero el log de un año es grande
-    (perf no es objetivo del MVP — ARCHITECTURE §1).
-  - (−) La decisión determinista es más predecible que una con ruido; la irracionalidad
-    creíble llega en la Semana 3 (memoria + emoción), no aquí.
+## ADR-0009 — Stack: Python 3.11+ with minimal dependencies, JSON first
+
+- **Status:** Accepted
+- **Context:** At 100 agents performance is not the problem; iteration speed is. The
+  core must be portable in case a bottleneck appears later.
+- **Decision:** Python 3.11+, `dataclasses`, `pytest`, seeded RNG, JSON persistence
+  (SQLite if querying is needed). No heavy simulation frameworks.
+- **Consequences:**
+  - (+) Fast iteration; low barrier to entry; portable design.
+  - (−) Future core rewrite if scaled significantly (assumed and accepted).
+
+---
+
+## ADR-0010 — Death is an emergent system with a consequence queue
+
+- **Status:** Accepted
+- **Context:** In v1 death would be a `delete` with income adjustment: it carries no weight.
+- **Decision:** Death emerges from accumulated health risk (age, habits, stress, healthcare
+  access) + acute events, with psychosocial factors as one among several. It triggers
+  downstream effects: grief scaled by bond strength, role vacancy, economic shock +
+  inheritance, household restructuring, trace in the memory of the living.
+- **Consequences:**
+  - (+) A death generates ripples in the network and the economy (Week 4 gate).
+  - (−) Couples several systems (death, relations, contagion, economy, household);
+    requires careful application order via events.
+
+## ADR-0011 — Core / facade / client architecture
+
+- **Status:** Accepted
+- **Context:** The project stops being just an engine that outputs a log and becomes a
+  **downloadable desktop application** (Windows, macOS, Linux) where each user creates
+  and observes their own worlds. The horizon includes connecting a graphics engine
+  (Godot/Unity) in the future. If the simulation core and the visual layer are coupled,
+  adding or changing the interface would require rewriting the engine. The interface must
+  be guaranteed to be a replaceable piece, not a core dependency.
+- **Decision:** Three rings with one-directional dependencies (outside-in; the core knows
+  nothing about the outside):
+  1. **Core** (current `citysim/`: `state`, `systems`, `eventlog`, `scheduler`,
+     `seed`, `invariants`, `rng`). Does not change. Its responsibility is advancing the
+     simulation and guarding state. It knows nothing about UI, windows or rendering.
+  2. **Facade** (`citysim/facade/`): a stable, minimal interface — the **only** surface
+     clients may touch. Exposes high-level operations (create world, advance, read state,
+     read events, save, load) and delivers **read-only DTOs**, never the internal `World`
+     entities. It is the contract that decouples core and clients.
+  3. **Clients** (outside the core package): consume only the facade. Today, a desktop UI.
+     Tomorrow, Godot/Unity or others. None import from `systems/`, `eventlog/` or touch
+     the `World` directly.
+- **Consequences:**
+  - (+) The UI is replaceable without touching the engine; a future graphics engine
+    connects to the same facade (it is, in fact, the bridge toward Godot/Unity).
+  - (+) The facade is a natural point for serializing worlds: since the core is
+    deterministic and seeded (ADR-0002), a world is defined by `config + seed`, so
+    saving/sharing a world is saving/sharing very little. Saving is implemented via
+    *replay* (`config + ticks`), avoiding serializing pointers (ADR-0004).
+  - (+) Read-only DTOs prevent a client from accidentally corrupting state, preserving
+    ADR-0001 (events as the only path for change).
+  - (+) Testable: the facade can be exercised without any UI mounted.
+  - (−) Extra mapping layer (internal entity → DTO) with some duplication and
+    maintenance cost when state changes shape.
+  - (−) Permanent discipline: the rule "clients only talk to the facade" must be
+    enforced in review; a direct import of `systems/` from a client breaks it.
+  - (−) The facade must remain stable; changing it breaks all clients at once, so its
+    changes are thought through more carefully than internal ones.
+
+## ADR-0012 — First visual client: Pygame in-process, split into presenter/view
+
+- **Status:** Accepted
+- **Context:** With the facade ready (ADR-0011), the first visual interface is next.
+  The goal is a downloadable, cross-platform desktop application, with a graphics engine
+  (Godot/Unity) on the horizon. A tool for the first client must be chosen, along with
+  an internal structure that does not become a dead end. Form-library tools (Tkinter/Qt)
+  work for panels, not for drawing a neighborhood with moving things; they clash with
+  that horizon. Jumping straight to Godot adds an IPC bridge and a second language
+  before anything appears on screen.
+- **Decision:** The first client is **Pygame, in-process**, in a package separate from
+  the core, `citysim_desktop/`, consuming **only** `citysim.facade` and `citysim.config`.
+  Internally split into two:
+  1. **Presenter** (`controller.py`, `layout.py`): pure Python, **no pygame**. Manages
+     the `Simulation`, translates UI intentions into facade calls and derives the visual
+     layout from ids (the core has no coordinates — ADR-0004).
+  2. **View** (`view.py`): Pygame. Only draws what the presenter exposes and sends input.
+  Pygame is an **optional dependency** (`pip install ".[ui]"`); the core and facade
+  remain dependency-free (ADR-0009).
+- **Consequences:**
+  - (+) Minimal friction to validate the facade with something visible and packagable
+    to an executable (PyInstaller) on all three OSes.
+  - (+) The presenter, without pygame, is testable without a display (runs in CI without
+    a screen); the view remains a replaceable piece. On the day of Godot/Unity, only the
+    view changes and the presenter/facade stay the same — the same boundary as ADR-0011,
+    one level up.
+  - (+) The core gains no dependencies: `import citysim.facade` works without pygame.
+  - (−) Pygame has a low graphical ceiling; it is not an engine. The jump to Godot/Unity
+    remains separate work (its bridge is the facade).
+  - (−) Extra discipline: the view must not leak simulation logic and the client must not
+    import from the core beyond the facade (covered by a test).
+
+## ADR-0013 — Executable packaging with PyInstaller, per-OS build in CI
+
+- **Status:** Accepted
+- **Context:** The client goal (ADR-0012) is to be a **downloadable** desktop application
+  for Windows, macOS and Linux, without requiring the user to install Python. Packaging
+  Pygame with PyInstaller has known pitfalls: system fonts may not be in the frozen
+  binary, the working directory is unreliable when launched by double-click, and
+  PyInstaller does **not** cross-compile.
+- **Decision:** Package with **PyInstaller** in **onefile** mode (a single downloadable
+  file), with a versioned `.spec` (`packaging/citysim-desktop.spec`) and a thin entry
+  script (`packaging/entry.py`). To avoid the pitfalls:
+  - **Font:** the view uses **Pygame's built-in font** (`pygame.font.Font(None, …)`),
+    which travels with Pygame; no `.ttf` files are bundled and `SysFont` is not used.
+    Eliminates the OS font dependency without `--add-data`.
+  - **Saving:** worlds are saved in an **OS user data directory**
+    (`citysim_desktop/paths.py`), not next to the binary or in the cwd.
+  - **Per-OS build:** a `package.yml` workflow with an `ubuntu`/`windows`/`macos`
+    matrix builds one binary per platform (PyInstaller does not cross-compile). Each job
+    validates the binary with a headless **`--smoke`** mode (`SDL_VIDEODRIVER=dummy`)
+    that creates a world, advances it and exits 0; then uploads it as an artifact. On
+    `vX.Y.Z` tags, it also attaches it to a GitHub Release.
+  - **Trigger:** only `workflow_dispatch` and `v*` tags (not on every PR, to avoid
+    burning minutes). PyInstaller is an optional `build` extra; the core remains
+    dependency-free (ADR-0009).
+- **Consequences:**
+  - (+) Downloadable executables for all three OSes, with nothing for the user to install.
+  - (+) The `--smoke` mode gives a real signal that the bundle starts on each OS,
+    without needing a display in CI.
+  - (+) Core and facade untouched and without new dependencies; all the change lives in
+    the client and in `packaging/`.
+  - (−) Three separate builds (one per OS); no single universal artifact.
+  - (−) Binaries are unsigned: macOS/Windows may warn when opening them
+    (Gatekeeper/SmartScreen). Signing/notarizing is out of scope for now.
+  - (−) onefile starts slightly slower (self-extracts); if this causes issues on some OS,
+    the documented fallback in the `.spec` is to switch to onedir.
+
+## ADR-0014 — Identity (Week 2): deterministic decision, action as state, money conserved
+
+- **Status:** Accepted
+- **Context:** Week 2 gives agents heterogeneity (traits + needs + wellbeing + decision
+  + minimal economy). Three things had to be resolved: where decision diversity comes
+  from, how to connect "deciding" with "having economic consequence" without coupling
+  systems, and how to prevent money from being created or destroyed.
+- **Decision:**
+  1. **Deterministic, not stochastic, decision.** The `decision` system chooses the first
+     "good enough" action (ADR-0007) scored by traits+needs, without `ctx.rng`. Diversity
+     comes from **traits**, which the seeder samples with population-level variation from
+     the seeded RNG (ADR-0002). Intended consequence: the log now **diverges by seed**
+     (different traits ⇒ different decisions), reinforcing end-to-end determinism without
+     per-tick randomness.
+  2. **Minimal economy in `L1_BASE`** (as the plan states). Runs in the MVP by default;
+     `L2_ECONOMY` is reserved for the richer economy (savings/commerce/investment) of the
+     post-MVP.
+  3. **`Person.current_action`** as *activity state* (not emotion — ADR-0006 forbids
+     persisting mood, not current activity, same as `location_id`). `decision` sets it
+     via the `ACTION_CHOSEN` event; `economy` reads it to emit `INCOME`/`EXPENSE`. This
+     decouples decision and economy: they communicate via state + events, not direct calls.
+  4. **Money conservation** as invariant (#1 of ARCHITECTURE §10): the current total must
+     balance against the seeded initial amount plus Σ`INCOME` − Σ`EXPENSE`. Spending is
+     capped at what is available (`min(cost, money)`) so the balance is exact.
+- **Consequences:**
+  - (+) Week 2 gate is verifiable: opposite traits ⇒ different and stable decisions.
+  - (+) Stronger and testable determinism (different seeds ⇒ different logs).
+  - (+) The economy cannot "manufacture" money without an invariant detecting it.
+  - (−) `decision`/`needs`/`wellbeing` emit many events (per person per tick); mitigated
+    by emitting needs/wellbeing only on changes ≥ ε, but a year's log is large
+    (perf is not an MVP goal — ARCHITECTURE §1).
+  - (−) Deterministic decision is more predictable than one with noise; credible
+    irrationality arrives in Week 3 (memory + emotion), not here.

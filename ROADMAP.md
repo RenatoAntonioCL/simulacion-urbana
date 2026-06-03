@@ -1,114 +1,114 @@
 # Roadmap
 
-> Hacia dónde va el proyecto y cómo seguir su avance. El progreso se ve día a día en
-> los **commits**, en el [CHANGELOG](./CHANGELOG.md) y en los checkboxes de abajo.
-> Estado vivo y detalle técnico del momento: [CONTEXT.md](./CONTEXT.md).
+> Where the project is headed and how to follow its progress. Day-to-day progress is
+> visible in **commits**, in the [CHANGELOG](./CHANGELOG.md) and in the checkboxes
+> below. Live status and current technical detail: [CONTEXT.md](./CONTEXT.md).
 
-El plan de construcción está en [`plan_4_semanas.md`](./plan_4_semanas.md): cada hito
-cierra con un **gate** de validación (una pregunta sí/no). No se avanza con el gate sin
-pasar. Cada hito mapea a una versión.
+The build plan is in [`plan_4_semanas.md`](./plan_4_semanas.md): each milestone closes
+with a **validation gate** (a yes/no question). A gate must pass before moving on.
+Each milestone maps to a version.
 
-## Versionado
+## Versioning
 
-Mientras el MVP está en construcción, la versión vive en `0.x` y la API es inestable.
-Cada hito semanal del núcleo corresponde a una release alpha; el MVP cerrado (los 4
-gates) marca la primera versión estable de referencia. Aparte de esa secuencia, hubo un
-hito de **plataforma** —`v0.1.0`, la app de escritorio descargable— que no es uno de los
-4 gates de comportamiento sino la vía de entrega; por eso los hitos del núcleo siguen
-desde `v0.2.0-alpha`.
+While the MVP is under construction, the version lives in `0.x` and the API is
+unstable. Each weekly core milestone corresponds to an alpha release; the closed MVP
+(all 4 gates) marks the first stable reference version. Alongside that sequence, there
+was a **platform** milestone —`v0.1.0`, the downloadable desktop app— which is not one
+of the 4 behavior gates but rather the delivery vehicle; that is why the core
+milestones continue from `v0.2.0-alpha`.
 
-| Versión        | Hito                         | Gate / criterio                                      | Estado |
-|----------------|------------------------------|------------------------------------------------------|--------|
-| `v0.0.x`       | Núcleo determinista (Sem. 1) | ¿El mundo tickea determinista y reproducible?        | 🟡 En progreso |
-| `v0.1.0`       | Plataforma descargable       | App de escritorio: fachada + cliente Pygame + ejecutables (Win/Mac/Linux) | ✅ Hecho |
-| `v0.2.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | ✅ Hecho |
-| `v0.3.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ✅ Hecho |
-| `v0.4.0-alpha` | Sociedad (Sem. 4)            | ¿La red reacciona ante una muerte / shock?           | ⬜ Pendiente |
-| `v1.0.0`       | MVP cerrado                  | Los 4 gates pasados: un año reproducible y no plano  | ⬜ Pendiente |
+| Version        | Milestone                     | Gate / criterion                                              | Status |
+|----------------|-------------------------------|---------------------------------------------------------------|--------|
+| `v0.0.x`       | Deterministic core (Wk. 1)   | Does the world tick deterministically and reproducibly?       | 🟡 In progress |
+| `v0.1.0`       | Downloadable platform         | Desktop app: facade + Pygame client + executables (Win/Mac/Linux) | ✅ Done |
+| `v0.2.0-alpha` | Identity (Wk. 2)             | Do agents look distinct from each other?                      | ✅ Done |
+| `v0.3.0-alpha` | Trajectory (Wk. 3)           | Does the past weigh in? Is there credible irrationality?      | ✅ Done |
+| `v0.4.0-alpha` | Society (Wk. 4)              | Does the network react to a death / shock?                    | ⬜ Pending |
+| `v1.0.0`       | Closed MVP                   | All 4 gates passed: one reproducible, non-flat year           | ⬜ Pending |
 
-Leyenda: ✅ hecho · 🟡 en progreso · ⬜ pendiente
-
----
-
-## v0.0.x — Núcleo determinista 🟡
-
-Motor que late: tickea de forma determinista y registra eventos. Sin comportamiento.
-
-- [x] Arquitectura, decisiones (ADRs), contexto y changelog.
-- [x] Scaffold del paquete `citysim` con contratos (state, systems, scheduler, eventlog).
-- [x] RNG sembrado e inyectado; eventlog que aplica y persiste; scheduler multi-escala.
-- [x] Seeder determinista (100 personas · 30 hogares · 20 empresas · 1 barrio).
-- [x] Invariantes + tests (cuadre poblacional, rangos, integridad, reproducibilidad).
-- [x] Dockerización (imagen multi-stage, compose, Makefile).
-- [ ] Envejecimiento con demografía base completa (nacimientos/muertes por edad).
-- [ ] **Gate:** dos runs con el mismo seed ⇒ mismo log; invariantes verdes tras un año.
-
-## v0.1.0 — Plataforma descargable ✅
-
-Hito de entrega (paralelo a los gates del núcleo): convertir el motor en una aplicación
-de escritorio real, descargable, sin pedirle Python al usuario.
-
-- [x] Capa de fachada (`citysim/facade/`): única superficie pública con DTOs de solo
-      lectura; guardar/cargar por replay (ADR-0011).
-- [x] Cliente de escritorio en Pygame (`citysim_desktop/`): creación de mundo, vista del
-      barrio, feed de eventos, controles de reloj, guardar/cargar (ADR-0012).
-- [x] Empaquetado a ejecutables (Win/Mac/Linux) con PyInstaller + workflow de release
-      por tag (ADR-0013).
-- [x] Release `v0.1.0` publicado con los tres binarios validados (`--smoke`).
-
-## v0.2.0-alpha — Identidad ✅
-
-Que los agentes se vean distintos entre sí. Rompe la planitud.
-
-- [x] Rasgos en `Person` (sociabilidad, ambición, riesgo, escrupulosidad, resiliencia).
-- [x] Necesidades psicológicas (pertenencia, autonomía, propósito, seguridad, estímulo).
-- [x] Bienestar ponderado por rasgos, no solo dinero.
-- [x] Decisión satisficiente básica.
-- [x] Economía mínima (Capa 1): trabajo da ingreso, consumo gasta.
-- [x] **Gate:** dos agentes con economía similar pero rasgos opuestos deciden distinto.
-
-## v0.3.0-alpha — Trayectoria ✅
-
-Que el pasado vivido cambie el presente, con irracionalidad creíble.
-
-- [x] Memoria episódica con decaimiento.
-- [x] Emoción transitoria por appraisal, que decae según resiliencia (nunca almacenada).
-- [x] Objetivos dinámicos (se forman, persiguen, logran o abandonan).
-- [x] Conexión memoria → decisión (un despido sube la aversión al riesgo).
-- [x] **Gate:** dos agentes iguales con historias distintas se comportan distinto hoy.
-
-## v0.4.0-alpha — Sociedad ⬜
-
-Que las acciones repercutan en la red y que la muerte pese.
-
-- [ ] `Relationship` con tipo, fuerza, reciprocidad e historia.
-- [ ] Contagio social por la red, proporcional a la fuerza del vínculo.
-- [ ] Sistema de muerte emergente + cola de consecuencias (duelo, herencia, hogar, huella).
-- [ ] Proyección offline (deterministas vs estocásticos).
-- [ ] Una vista de observador (Ciudadano o Analista).
-- [ ] **Gate:** una muerte bien conectada genera ondas en red y economía; shock de barrio
-      produce caída de ánimo colectiva.
-
-## v1.0.0 — MVP cerrado ⬜
-
-Los 4 gates pasados: un año simulado, reproducible, con agentes que se ven distintos,
-recuerdan, sienten, se influyen y mueren dejando huella.
+Legend: ✅ done · 🟡 in progress · ⬜ pending
 
 ---
 
-## Después del MVP (ideas, fuera de alcance por ahora)
+## v0.0.x — Deterministic core 🟡
 
-- Capa 2 (economía rica: ahorro, comercio, inversión) y resto de capas como flags.
-- Más observadores y una UI de verdad.
-- Profundizar la proyección offline para ausencias largas.
-- Publicación de la imagen Docker en un registry (CI ya corre build + tests por push).
-- **Firma y notarización de los ejecutables** (Apple Developer en macOS, code signing en
-  Windows) para que abran sin los avisos de Gatekeeper/SmartScreen. Hoy los binarios van
-  sin firmar y requieren un paso manual al abrir (ver [ADR-0013](./DECISIONS.md)).
+An engine that beats: ticks deterministically and records events. No behavior yet.
 
-## Cómo seguir el avance
+- [x] Architecture, decisions (ADRs), context and changelog.
+- [x] `citysim` package scaffold with contracts (state, systems, scheduler, eventlog).
+- [x] Seeded and injected RNG; eventlog that applies and persists; multi-scale scheduler.
+- [x] Deterministic seeder (100 persons · 30 households · 20 businesses · 1 neighborhood).
+- [x] Invariants + tests (population balance, ranges, integrity, reproducibility).
+- [x] Dockerization (multi-stage image, compose, Makefile).
+- [ ] Aging with complete base demographics (births/deaths by age).
+- [ ] **Gate:** two runs with the same seed ⇒ same log; invariants green after one year.
 
-- **Commits**: el día a día del trabajo.
-- **[CHANGELOG.md](./CHANGELOG.md)**: qué cambió en cada versión.
-- **[CONTEXT.md](./CONTEXT.md)**: estado vivo y próximo paso concreto.
-- **Releases / tags**: cada hito alpha queda etiquetado.
+## v0.1.0 — Downloadable platform ✅
+
+Delivery milestone (parallel to the core gates): turn the engine into a real,
+downloadable desktop application, without requiring the user to have Python.
+
+- [x] Facade layer (`citysim/facade/`): single public surface with read-only DTOs;
+      save/load by replay (ADR-0011).
+- [x] Pygame desktop client (`citysim_desktop/`): world creation, neighborhood view,
+      event feed, clock controls, save/load (ADR-0012).
+- [x] Packaging to executables (Win/Mac/Linux) with PyInstaller + tag-based release
+      workflow (ADR-0013).
+- [x] Release `v0.1.0` published with all three validated binaries (`--smoke`).
+
+## v0.2.0-alpha — Identity ✅
+
+Agents look distinct from each other. Breaks flatness.
+
+- [x] Traits in `Person` (sociability, ambition, risk tolerance, conscientiousness, resilience).
+- [x] Psychological needs (belonging, autonomy, purpose, security, stimulation).
+- [x] Wellbeing weighted by traits, not just money.
+- [x] Basic satisficing decision.
+- [x] Minimal economy (Layer 1): work yields income, consumption spends.
+- [x] **Gate:** two agents with similar economy but opposite traits decide differently.
+
+## v0.3.0-alpha — Trajectory ✅
+
+Past lived experience changes the present, with credible irrationality.
+
+- [x] Episodic memory with decay.
+- [x] Transient emotion via appraisal, decaying by resilience (never stored).
+- [x] Dynamic goals (form, pursue, achieve or abandon).
+- [x] Memory → decision link (a layoff raises risk aversion).
+- [x] **Gate:** two identical agents with different histories behave differently today.
+
+## v0.4.0-alpha — Society ⬜
+
+Actions ripple through the network and death carries weight.
+
+- [ ] `Relationship` with type, strength, reciprocity and history.
+- [ ] Social contagion through the network, proportional to bond strength.
+- [ ] Emergent death system + consequence queue (grief, inheritance, household, trace).
+- [ ] Offline projection (deterministic vs stochastic).
+- [ ] One observer view (Citizen or Analyst).
+- [ ] **Gate:** a well-connected death generates ripples in the network and economy;
+      a neighborhood shock produces a collective mood drop.
+
+## v1.0.0 — Closed MVP ⬜
+
+All 4 gates passed: one simulated year, reproducible, with agents that look distinct,
+remember, feel, influence each other and die leaving a trace.
+
+---
+
+## After the MVP (ideas, out of scope for now)
+
+- Layer 2 (richer economy: savings, commerce, investment) and remaining layers as flags.
+- More observers and a real UI.
+- Deeper offline projection for long absences.
+- Publishing the Docker image to a registry (CI already runs build + tests on push).
+- **Signing and notarizing executables** (Apple Developer on macOS, code signing on
+  Windows) so they open without Gatekeeper/SmartScreen warnings. Today the binaries are
+  unsigned and require a manual step when first opened (see [ADR-0013](./DECISIONS.md)).
+
+## How to follow progress
+
+- **Commits**: the day-to-day work.
+- **[CHANGELOG.md](./CHANGELOG.md)**: what changed in each version.
+- **[CONTEXT.md](./CONTEXT.md)**: live status and the concrete next step.
+- **Releases / tags**: each alpha milestone is tagged.

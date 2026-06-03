@@ -1,112 +1,113 @@
-# Contexto del Proyecto
+# Project Context
 
-> Estado vivo del proyecto: dónde estamos, qué sigue y cómo trabajar acá.
-> Se actualiza al cerrar cada semana/hito. Última actualización: **2026-06-02**.
-
----
-
-## Qué es esto
-
-Una **simulación urbana persistente**: una ciudad que evoluciona de forma autónoma en
-el tiempo, incluso con el usuario desconectado. El objetivo no es un videojuego sino
-una **sociedad artificial** que genere fenómenos emergentes (movilidad, economía,
-relaciones, salud, muerte). La ciudad es el protagonista.
-
-> La ciudad no existe para el jugador. El jugador existe dentro de la ciudad.
-
-Documentos de origen:
-- **`simulacion_urbana_v2.md`** — visión y modelo conceptual (el *qué* y el *porqué*).
-- **`plan_4_semanas.md`** — plan de ejecución del MVP con gates semanales.
-- **`ARCHITECTURE.md`** — cómo se construye técnicamente.
-- **`DECISIONS.md`** — decisiones de arquitectura (ADRs) con su justificación.
-- **`CHANGELOG.md`** — qué cambió y cuándo.
+> Live status of the project: where we are, what comes next, and how to work here.
+> Updated at the close of each week/milestone. Last updated: **2026-06-02**.
 
 ---
 
-## Estado actual
+## What this is
 
-| Aspecto            | Estado                                                        |
-|--------------------|--------------------------------------------------------------|
-| Fase               | **Semana 3 — Trayectoria** (memoria + emoción + objetivos)   |
-| Semana 1 (Núcleo)  | 🟡 En progreso: motor late, tickea y registra eventos        |
-| Semana 2 (Identidad)| ✅ Rasgos, needs, wellbeing, decisión, economía (v0.2.0-alpha) |
-| Semana 3 (Trayectoria)| ✅ Memoria episódica, emoción transitoria, metas dinámicas (v0.3.0-alpha) |
-| Semana 4 (Sociedad)| ⬜ Pendiente                                                 |
-| Plataforma         | ✅ Fachada + cliente Pygame + ejecutables (release v0.1.0)   |
-| Capas activas      | Capa 1 (Personas · Hogares · Trabajo · Movilidad · economía mínima) |
-| Tests              | ✅ 49 tests verdes (invariantes, reproducibilidad, fachada, UI, gates Sem. 2 y 3) |
+A **persistent urban simulation**: a city that evolves autonomously over time, even
+while the user is offline. The goal is not a video game but an **artificial society**
+that generates emergent phenomena (mobility, economy, relationships, health, death).
+The city is the protagonist.
 
-Leyenda: ✅ hecho · 🟡 en progreso · ⏳ siguiente · ⬜ pendiente
+> The city does not exist for the player. The player exists inside the city.
 
-### Lo que existe y FUNCIONA hoy
-- Documentación de arquitectura, decisiones, contexto y changelog.
-- Paquete `src/citysim/` con el contrato completo (state, systems, scheduler, eventlog,
+Source documents:
+- **`simulacion_urbana_v2.md`** — vision and conceptual model (the *what* and *why*).
+- **`plan_4_semanas.md`** — MVP execution plan with weekly gates.
+- **`ARCHITECTURE.md`** — how it is built technically.
+- **`DECISIONS.md`** — architecture decisions (ADRs) with their rationale.
+- **`CHANGELOG.md`** — what changed and when.
+
+---
+
+## Current status
+
+| Aspect              | Status                                                              |
+|---------------------|---------------------------------------------------------------------|
+| Phase               | **Week 3 — Trajectory** (memory + emotion + goals)                 |
+| Week 1 (Core)       | 🟡 In progress: engine beats, ticks and records events             |
+| Week 2 (Identity)   | ✅ Traits, needs, wellbeing, decision, economy (v0.2.0-alpha)      |
+| Week 3 (Trajectory) | ✅ Episodic memory, transient emotion, dynamic goals (v0.3.0-alpha)|
+| Week 4 (Society)    | ⬜ Pending                                                         |
+| Platform            | ✅ Facade + Pygame client + executables (release v0.1.0)           |
+| Active layers       | Layer 1 (Persons · Households · Work · Mobility · minimal economy) |
+| Tests               | ✅ 49 green tests (invariants, reproducibility, facade, UI, gates Wk 2 & 3) |
+
+Legend: ✅ done · 🟡 in progress · ⏳ next · ⬜ pending
+
+### What EXISTS and WORKS today
+- Architecture, decisions, context and changelog documentation.
+- `src/citysim/` package with the full contract (state, systems, scheduler, eventlog,
   seed, projector, observers).
-- **Núcleo determinista que corre**: `python -m citysim --days 30` siembra 100
-  personas · 30 hogares · 50 lugares, tickea un mes y registra ~3.7k eventos.
-- RNG sembrado e inyectado; eventlog que aplica y persiste; scheduler multi-escala;
-  seeder determinista; system `aging` de ejemplo.
-- `invariants.py` + `tests/` (7 tests verdes): cuadre poblacional, rangos válidos,
-  integridad referencial y reproducibilidad por seed.
-- **Dockerización completa**: `Dockerfile` multi-stage (build/test/runtime no-root),
-  `docker-compose.yml`, `Makefile` y `.dockerignore`. `make build/run/test` funcionan;
-  el run en contenedor reproduce la misma huella de log que el local.
+- **Running deterministic core**: `python -m citysim --days 30` seeds 100
+  persons · 30 households · 50 places, ticks one month and records ~3.7k events.
+- Seeded and injected RNG; eventlog that applies and persists; multi-scale scheduler;
+  deterministic seeder; example `aging` system.
+- `invariants.py` + `tests/` (7 green tests): population balance, valid ranges,
+  referential integrity and seed reproducibility.
+- **Full Dockerization**: multi-stage `Dockerfile` (build/test/runtime non-root),
+  `docker-compose.yml`, `Makefile` and `.dockerignore`. `make build/run/test` work;
+  container run reproduces the same log fingerprint as local.
 
-### Lo que es STUB todavía (NotImplementedError consciente)
-- Systems de Semana 4: `relations`, `contagion`, `death`.
-- Proyección offline (`projector`) y observadores (Semana 4).
+### What is still a STUB (deliberate NotImplementedError)
+- Week 4 systems: `relations`, `contagion`, `death`.
+- Offline projection (`projector`) and observers (Week 4).
 
-> Nota sobre determinismo: con solo `aging` (seed-independiente), el log de eventos aún
-> no diverge entre seeds; la semilla hoy solo afecta la población inicial. La
-> divergencia del log por seed llegará con los systems estocásticos. El test lo
-> documenta y deberá fortalecerse entonces.
-
----
-
-## Próximo paso concreto
-
-Arrancar la **Semana 4 — Sociedad** (relaciones, contagio, muerte):
-1. Entidad `Relationship` con tipo, fuerza, reciprocidad e historia.
-2. Contagio social: estados de ánimo se difunden por la red (proporcional a fuerza del vínculo).
-3. Sistema de muerte emergente + cola de consecuencias (duelo, herencia, reestructuración de hogar).
-4. Proyección offline (`projector`) y una vista de observador.
-
-**Gate de Semana 4:** una muerte bien conectada genera ondas en red y economía;
-shock de barrio produce caída de ánimo colectiva.
+> Note on determinism: with only `aging` (seed-independent), the event log does not yet
+> diverge between seeds; the seed today only affects the initial population. Log
+> divergence by seed will come with the stochastic systems. The test documents this
+> and will need to be strengthened at that point.
 
 ---
 
-## Escala del MVP
+## Immediate next step
+
+Start **Week 4 — Society** (relationships, contagion, death):
+1. `Relationship` entity with type, strength, reciprocity and history.
+2. Social contagion: moods spread through the network (proportional to link strength).
+3. Emergent death system + consequence queue (grief, inheritance, household restructuring).
+4. Offline projection (`projector`) and one observer view.
+
+**Week 4 gate:** a well-connected death generates ripples in the network and economy;
+a neighborhood shock produces a collective mood drop.
+
+---
+
+## MVP scale
 
 ```text
-100 personas · 30 hogares · 20 empresas · 1 barrio · 1 año simulado
+100 persons · 30 households · 20 businesses · 1 neighborhood · 1 simulated year
 ```
 
 ---
 
-## Cómo trabajar acá (convenciones)
+## Working conventions
 
-- **Determinismo primero.** Toda aleatoriedad pasa por el RNG inyectado. Nunca el
-  `random` global. (ADR-0002)
-- **Eventos para todo cambio.** Los systems no mutan estado; emiten `Event`. Solo el
-  `eventlog` aplica. (ADR-0001)
-- **`state/` es solo datos.** La lógica va en `systems/`. (ADR-0003)
-- **No avanzar con el cimiento roto.** Si un test de invariante falla, se para y se
-  arregla. No se acumula deuda.
-- **No encender capas de golpe.** Se valida de a una para poder distinguir emergencia
-  de bug. (ADR-0005)
-- **La riqueza de los agentes es la prioridad.** La economía se mantiene mínima en el
-  MVP; que no se coma el foco.
+- **Determinism first.** All randomness goes through the injected RNG. Never the
+  global `random`. (ADR-0002)
+- **Events for every change.** Systems do not mutate state; they emit `Event`. Only
+  the `eventlog` applies. (ADR-0001)
+- **`state/` is data only.** Logic goes in `systems/`. (ADR-0003)
+- **Do not advance with a broken foundation.** If an invariant test fails, stop and
+  fix it. No debt accumulates.
+- **Do not activate layers all at once.** Validate one at a time to distinguish
+  emergence from bugs. (ADR-0005)
+- **Agent richness is the priority.** Keep the economy minimal in the MVP;
+  don't let it consume the focus.
 
-## Idioma
-- Documentación y comentarios: **español**.
-- Identificadores de código: **inglés** (`Person`, `Household`, `decide_action`).
+## Language
+- Documentation and comments: **English**.
+- Code identifiers: **English** (`Person`, `Household`, `decide_action`).
 
 ---
 
-## Riesgos vigentes
+## Active risks
 
-- **Proyección offline** — el mayor riesgo técnico; se aborda en Semana 4.
-- **Sobre-ingeniería temprana** — a 100 agentes, optimizar es perder tiempo.
-- **Economía absorbente** — tiende a crecer y robar foco; mantenerla mínima.
-- **Saltar un gate** — sin validar cada hito no se distingue emergencia de bug.
+- **Offline projection** — the biggest technical risk; addressed in Week 4.
+- **Premature over-engineering** — at 100 agents, optimizing wastes time.
+- **Absorbing economy** — tends to grow and steal focus; keep it minimal.
+- **Skipping a gate** — without validating each milestone, emergence cannot be
+  distinguished from bugs.

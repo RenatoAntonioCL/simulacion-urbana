@@ -1,297 +1,298 @@
-# Arquitectura — Simulación Urbana Persistente (v2)
+# Architecture — Persistent Urban Simulation (v2)
 
-> Documento técnico de referencia. Describe **cómo** se construye lo que
-> `simulacion_urbana_v2.md` define como visión y `plan_4_semanas.md` como plan.
-> Para el **porqué** de cada decisión estructural, ver [DECISIONS.md](./DECISIONS.md).
-
----
-
-## 1. Objetivo arquitectónico
-
-Construir un motor de simulación social que sea, en este orden de prioridad:
-
-1. **Determinista** — mismo `seed` ⇒ mismo run, bit a bit. Sin esto no hay forma de
-   distinguir un fenómeno emergente de un bug.
-2. **Auditable** — todo cambio de estado pasa por un `Event`. Siempre se puede
-   responder *por qué* cambió algo.
-3. **Reemplazable por capas** — cada sistema es una función pura activable por flag.
-   El MVP corre con la Capa 1; el resto se enciende sin reescribir el núcleo.
-4. **Heterogéneo** — los agentes difieren por rasgo (fijo) + memoria (acumula) +
-   emoción (decae), no por números distintos del mismo molde.
-
-El rendimiento **no** es un objetivo del MVP (100 agentes). Se prioriza velocidad de
-iteración y claridad. La arquitectura es portable: si aparece un bottleneck, el núcleo
-se reescribe sin tocar el diseño.
+> Technical reference document. Describes **how** what `simulacion_urbana_v2.md`
+> defines as vision and `plan_4_semanas.md` defines as plan is built.
+> For the **why** behind each structural decision, see [DECISIONS.md](./DECISIONS.md).
 
 ---
 
-## 2. Vista de alto nivel
+## 1. Architectural goal
+
+Build a social simulation engine that is, in this order of priority:
+
+1. **Deterministic** — same `seed` ⇒ same run, bit for bit. Without this there is no
+   way to distinguish an emergent phenomenon from a bug.
+2. **Auditable** — every state change goes through an `Event`. It is always possible
+   to answer *why* something changed.
+3. **Layer-replaceable** — each system is a pure function activatable by flag.
+   The MVP runs with Layer 1; the rest is toggled without rewriting the core.
+4. **Heterogeneous** — agents differ by trait (fixed) + memory (accumulates) +
+   emotion (decays), not by different numbers from the same mold.
+
+Performance is **not** an MVP goal (100 agents). Iteration speed and clarity are
+prioritized. The architecture is portable: if a bottleneck appears, the core can be
+rewritten without touching the design.
+
+---
+
+## 2. High-level view
 
 ```text
                          ┌──────────────────────────────────────────┐
                          │                scheduler/                 │
-                         │  Reloj multi-escala. Orquesta el orden.   │
+                         │  Multi-scale clock. Orchestrates order.   │
                          └───────────────────┬──────────────────────┘
-                                             │ por cada tick, en orden
+                                             │ for each tick, in order
                                              ▼
-   ┌─────────────┐   lee    ┌──────────────────────────┐   emite   ┌──────────────┐
-   │   state/    │ ───────▶ │         systems/         │ ────────▶ │  eventlog/   │
-   │ datos puros │          │ reglas = funciones puras │  Events   │ aplica+guarda│
-   │ (sin lógica)│ ◀─────── │ (estado) -> [Event]      │           │   eventos    │
-   └─────────────┘  aplica  └──────────────────────────┘           └──────┬───────┘
-          ▲          eventos                                               │
-          └───────────────────────────────────────────────────────────────┘
-                         el eventlog es el ÚNICO que muta state
+   ┌─────────────┐  reads  ┌──────────────────────────┐  emits   ┌──────────────┐
+   │   state/    │ ──────▶ │         systems/         │ ───────▶ │  eventlog/   │
+   │  pure data  │         │ rules = pure functions   │  Events  │ applies+saves│
+   │ (no logic)  │ ◀────── │ (state) -> [Event]       │          │    events    │
+   └─────────────┘ applies └──────────────────────────┘          └──────┬───────┘
+          ▲          events                                              │
+          └──────────────────────────────────────────────────────────────┘
+                         the eventlog is the ONLY component that mutates state
 
    ┌─────────────┐                                   ┌──────────────────────────┐
-   │ projector/  │  (Semana 4) salto offline         │        observers/        │
-   │ proyección  │  determinista + estocástico       │ vistas solo-lectura (rol)│
+   │ projector/  │  (Week 4) offline jump             │        observers/        │
+   │ projection  │  deterministic + stochastic        │ read-only views (by role)│
    └─────────────┘                                   └──────────────────────────┘
 ```
 
-**Invariante de flujo:** ningún `system` muta `state` directamente. Un system **lee**
-estado y **devuelve** una lista de `Event`. El `eventlog` es el único componente con
-permiso de escritura sobre el estado. Esto da auditoría, reproducibilidad y, más
-adelante, la base para la proyección offline.
+**Flow invariant:** no `system` mutates `state` directly. A system **reads** state
+and **returns** a list of `Event`. The `eventlog` is the only component with write
+access to state. This provides auditability, reproducibility and, later, the
+foundation for offline projection.
 
-**Anillos núcleo / fachada / cliente (ADR-0011):** todo lo anterior es el **núcleo**.
-A su alrededor, `facade/` expone una superficie estable (crear, avanzar, leer, guardar,
-cargar) que entrega DTOs de solo lectura. Los **clientes** (una UI de escritorio hoy; un
-motor gráfico mañana) hablan **solo** con la fachada; nunca importan `systems/` ni tocan
-el `World`. Las dependencias apuntan hacia adentro: el núcleo no conoce a nadie de afuera.
+**Core / facade / client rings (ADR-0011):** everything above is the **core**.
+Around it, `facade/` exposes a stable surface (create, advance, read, save, load)
+that delivers read-only DTOs. **Clients** (a desktop UI today; a graphics engine
+tomorrow) speak **only** with the facade; they never import `systems/` or touch the
+`World`. Dependencies point inward: the core knows nothing about the outside.
 
-El primer cliente es **`citysim_desktop/`** (Pygame, ADR-0012), un paquete aparte del
-núcleo. Internamente se separa en *presenter* (Python puro, sin pygame, testeable sin
-pantalla) y *vista* (Pygame). Pygame es dependencia opcional (`pip install ".[ui]"`).
+The first client is **`citysim_desktop/`** (Pygame, ADR-0012), a package separate
+from the core. Internally split into *presenter* (pure Python, no pygame, testable
+without a display) and *view* (Pygame). Pygame is an optional dependency
+(`pip install ".[ui]"`).
 
-Ese cliente se empaqueta a ejecutables descargables (Win/Mac/Linux) con PyInstaller
-(ADR-0013): el `.spec` y el script de entrada viven en **`packaging/`**, fuera de `src/`,
-y un workflow construye un binario por SO. Es build, no parte del motor.
+That client is packaged into downloadable executables (Win/Mac/Linux) with PyInstaller
+(ADR-0013): the `.spec` and entry script live in **`packaging/`**, outside `src/`,
+and a workflow builds one binary per OS. This is build tooling, not part of the engine.
 
 ---
 
-## 3. Estructura de paquetes
+## 3. Package structure
 
 ```text
 src/citysim/
-├── rng.py            RNG con semilla, inyectado. Nunca se usa random global.
-├── config.py         Flags de capas, parámetros del run, seed.
+├── rng.py            Seeded RNG, injected. Global random is never used.
+├── config.py         Layer flags, run parameters, seed.
 │
-├── state/            Modelos de datos puros. Sin lógica de negocio.
-│   ├── world.py          Contenedor raíz: índices de todas las entidades + reloj.
-│   ├── person.py         Person: estado base + rasgos + necesidades + memoria + metas.
-│   ├── household.py      Household: integrantes, ingresos, gastos, vivienda.
-│   ├── place.py          Place: capacidad, horario, tipo, ubicación.
-│   ├── event.py          Event: tipo, payload, tick, escala. Fuente de verdad.
-│   ├── relationship.py   Relationship: tipo, fuerza, reciprocidad, historia.
-│   └── enums.py          Tipos cerrados (PlaceType, EventType, RelType, TimeScale).
+├── state/            Pure data models. No business logic.
+│   ├── world.py          Root container: indexes of all entities + clock.
+│   ├── person.py         Person: base state + traits + needs + memory + goals.
+│   ├── household.py      Household: members, income, expenses, dwelling.
+│   ├── place.py          Place: capacity, schedule, type, location.
+│   ├── event.py          Event: type, payload, tick, scale. Source of truth.
+│   ├── relationship.py   Relationship: type, strength, reciprocity, history.
+│   └── enums.py          Closed types (PlaceType, EventType, RelType, TimeScale).
 │
-├── systems/          Las reglas. Funciones puras: (world, ctx) -> list[Event].
-│   ├── base.py           Protocolo System + registro por capa/escala.
-│   ├── aging.py          Envejecimiento, energía, demografía base. (Capa 1)
-│   ├── needs.py          Recalcula necesidades psicológicas. (Capa 1)
-│   ├── wellbeing.py      Bienestar ponderado por rasgos. (Capa 1)
-│   ├── decision.py       Decisión satisficiente (no optimizadora). (Capa 1/2)
-│   ├── economy.py        Trabajo, consumo, finanzas del hogar. (Capa 2)
-│   ├── memory.py         Copia eventos a memoria episódica; decae. (Semana 3)
-│   ├── emotion.py        Appraisal esperado-vs-real; emoción que decae. (Semana 3)
-│   ├── goals.py          Formación/persecución/abandono de metas. (Semana 3)
-│   ├── relations.py      Crea y actualiza vínculos. (Semana 4 / Capa 4)
-│   ├── contagion.py      Difusión por la red proporcional al vínculo. (Semana 4)
-│   └── death.py          Riesgo acumulado + efectos posteriores. (Semana 4)
+├── systems/          The rules. Pure functions: (world, ctx) -> list[Event].
+│   ├── base.py           System protocol + registry by layer/scale.
+│   ├── aging.py          Aging, energy, base demographics. (Layer 1)
+│   ├── needs.py          Recalculates psychological needs. (Layer 1)
+│   ├── wellbeing.py      Wellbeing weighted by traits. (Layer 1)
+│   ├── decision.py       Satisficing decision (non-optimizing). (Layer 1/2)
+│   ├── economy.py        Work, consumption, household finances. (Layer 2)
+│   ├── memory.py         Copies events to episodic memory; decays. (Week 3)
+│   ├── emotion.py        Expected-vs-actual appraisal; decaying emotion. (Week 3)
+│   ├── goals.py          Goal formation/pursuit/abandonment. (Week 3)
+│   ├── relations.py      Creates and updates social bonds. (Week 4 / Layer 4)
+│   ├── contagion.py      Network diffusion proportional to bond strength. (Week 4)
+│   └── death.py          Accumulated risk + downstream effects. (Week 4)
 │
-├── scheduler/        El reloj.
-│   └── clock.py          Escalas múltiples; orden de systems por tick.
+├── scheduler/        The clock.
+│   └── clock.py          Multiple scales; system order per tick.
 │
-├── eventlog/         El registro.
-│   ├── log.py            Buffer + persistencia del historial de eventos.
-│   └── apply.py          Aplicadores: cómo cada EventType muta el state.
+├── eventlog/         The registry.
+│   ├── log.py            Buffer + persistence of the event history.
+│   └── apply.py          Appliers: how each EventType mutates state.
 │
-├── seed/             Generación determinista de la población inicial.
-│   └── seeder.py        100 personas · 30 hogares · 20 empresas · 1 barrio.
+├── seed/             Deterministic generation of the initial population.
+│   └── seeder.py        100 persons · 30 households · 20 businesses · 1 neighborhood.
 │
-├── facade/           (ADR-0011) Única superficie pública para los clientes.
-│   ├── simulation.py    Clase Simulation: crear/avanzar/leer/guardar/cargar.
-│   └── dto.py           DTOs frozen de solo lectura (copias del estado relevante).
+├── facade/           (ADR-0011) Single public surface for clients.
+│   ├── simulation.py    Simulation class: create/advance/read/save/load.
+│   └── dto.py           Frozen read-only DTOs (copies of relevant state).
 │
-├── projector/        (Semana 4) Persistencia offline: estado proyectado.
+├── projector/        (Week 4) Offline persistence: projected state.
 │   └── projector.py
 │
-└── observers/        (Semana 4) Vistas solo-lectura según rol.
-    └── citizen.py        Una sola vista para el MVP.
+└── observers/        (Week 4) Read-only views by role.
+    └── citizen.py        Single view for the MVP.
 ```
 
 ---
 
-## 4. Modelo de datos (state/)
+## 4. Data model (state/)
 
-Modelos puros con `@dataclass`. **Sin métodos de negocio**: la lógica vive en
-`systems/`. Esto los hace triviales de serializar, copiar y testear.
+Pure models with `@dataclass`. **No business methods**: logic lives in `systems/`.
+This makes them trivial to serialize, copy and test.
 
-### Escalas de tiempo de los atributos de `Person`
+### Time scales of `Person` attributes
 
-La heterogeneidad nace de combinar tres escalas distintas (ver tabla en la visión):
+Heterogeneity arises from combining three distinct scales (see table in the vision):
 
-| Concepto      | Naturaleza             | ¿Se almacena?       | Dónde vive en `Person`          |
-|---------------|------------------------|---------------------|---------------------------------|
-| **Rasgo**     | Estable, casi invariable | Sí, como constante  | `traits` (fijado al nacer)      |
-| **Memoria**   | Acumulativa, decae lento | Sí, como registro   | `memory: list[MemoryTrace]`     |
-| **Emoción**   | Transitoria, decae rápido| **Nunca fija**      | se **recalcula** cada tick      |
+| Concept      | Nature                    | Stored?               | Lives in `Person`              |
+|--------------|---------------------------|-----------------------|--------------------------------|
+| **Trait**    | Stable, nearly invariant  | Yes, as a constant    | `traits` (set at birth)        |
+| **Memory**   | Accumulative, slow decay  | Yes, as a record      | `memory: list[MemoryTrace]`    |
+| **Emotion**  | Transient, fast decay     | **Never stored**      | **recomputed** every tick      |
 
-> Regla dura: **no se almacenan estados psicológicos arbitrarios**. "Persona triste"
-> está prohibido. La emoción es una señal derivada que se recalcula; nunca un campo
-> persistido. Ver `systems/emotion.py` y [DECISIONS.md → ADR-0006](./DECISIONS.md).
+> Hard rule: **arbitrary psychological states are not stored**. "Sad person" is
+> forbidden. Emotion is a derived signal that is recomputed; never a persisted field.
+> See `systems/emotion.py` and [DECISIONS.md → ADR-0006](./DECISIONS.md).
 
-### Identidad de entidades
+### Entity identity
 
-Toda entidad tiene un `id` estable (entero asignado por el seeder/RNG). Las
-referencias entre entidades se hacen **por id**, nunca por puntero directo, para que
-el estado sea serializable y la integridad referencial sea testeable.
+Every entity has a stable `id` (integer assigned by the seeder/RNG). References
+between entities are made **by id**, never by direct pointer, so that state is
+serializable and referential integrity is testable.
 
 ---
 
-## 5. Sistemas (systems/)
+## 5. Systems (systems/)
 
-Un `System` es una función pura con la firma:
+A `System` is a pure function with the signature:
 
 ```python
 def step(world: World, ctx: TickContext) -> list[Event]: ...
 ```
 
-- **No muta** `world`. Lee y devuelve eventos.
-- Es **determinista**: toda aleatoriedad sale de `ctx.rng`, jamás del `random` global.
-- Declara su **escala** (horaria/diaria/mensual/poblacional) y su **capa** (1–6).
-- Se registra en `systems/base.py`; el scheduler decide cuáles corren según la
-  escala del tick actual y los flags de capa activos.
+- **Does not mutate** `world`. Reads and returns events.
+- Is **deterministic**: all randomness comes from `ctx.rng`, never from global `random`.
+- Declares its **scale** (hourly/daily/monthly/population) and its **layer** (1–6).
+- Registered in `systems/base.py`; the scheduler decides which ones run based on
+  the current tick's scale and active layer flags.
 
-El **orden** dentro de un tick horario respeta el bucle del agente de la visión:
+The **order** within an hourly tick follows the agent loop from the vision:
 
 ```text
-1. aging/needs      Actualizar estado (incl. recalcular y decaer emoción).
-2. emotion          Evaluación (appraisal): esperado vs real -> emoción.
-3. decision         Decidir acción (satisficiente, sesgada por rasgos+emoción).
-4. (ejecución)      La acción se emite como Event.
-5. memory/relations Procesar eventos -> memoria episódica + red social.
-6. economy/...      Hogar, economía y movilidad en su escala correspondiente.
+1. aging/needs      Update state (incl. recalculate and decay emotion).
+2. emotion          Evaluation (appraisal): expected vs actual -> emotion.
+3. decision         Choose action (satisficing, biased by traits + emotion).
+4. (execution)      The action is emitted as an Event.
+5. memory/relations Process events -> episodic memory + social network.
+6. economy/...      Household, economy and mobility at their respective scale.
 ```
 
-**Systems activos hoy** (`build_default_registry`): `aging` (poblacional) y, desde la
-Semana 2, `needs` → `wellbeing` → `decision` → `economy` (horarios, Capa 1, en ese orden).
-`emotion`, `memory`, `relations`, etc. se registran en las Semanas 3-4.
+**Currently active systems** (`build_default_registry`): `aging` (population) and,
+from Week 2, `needs` → `wellbeing` → `decision` → `economy` (hourly, Layer 1, in
+that order). `emotion`, `memory`, `relations`, etc. are registered in Weeks 3–4.
 
 ---
 
-## 6. Reloj (scheduler/)
+## 6. Clock (scheduler/)
 
-La v1 fijaba "1 tick = 1 hora". La v2 usa **escalas múltiples**: el scheduler avanza
-en ticks horarios y dispara las escalas mayores cuando corresponde.
+v1 fixed "1 tick = 1 hour". v2 uses **multiple scales**: the scheduler advances in
+hourly ticks and fires the larger scales when appropriate.
 
 ```text
-Tick horario      → conducta individual, energía, rutinas
-Paso diario       → finanzas del hogar, contratos
-Paso mensual      → economía agregada, mercado laboral
-Paso poblacional  → demografía (nacimientos, muertes, envejecimiento)
+Hourly tick        → individual behavior, energy, routines
+Daily step         → household finances, contracts
+Monthly step       → aggregate economy, labor market
+Population step    → demographics (births, deaths, aging)
 ```
 
-En cada frontera (fin de día, fin de mes, etc.) el scheduler ejecuta los systems
-registrados para esa escala, en orden de capa. Un año MVP = 365 días de ticks.
+At each boundary (end of day, end of month, etc.) the scheduler runs the systems
+registered for that scale, in layer order. One MVP year = 365 days of ticks.
 
 ---
 
-## 7. Eventos y eventlog (eventlog/)
+## 7. Events and eventlog (eventlog/)
 
-- Un `Event` es un dato inmutable: `(type, tick, scale, payload)`.
-- Los systems **emiten** eventos; nunca aplican cambios.
-- `eventlog/apply.py` tiene un aplicador por `EventType` que sabe cómo ese evento
-  muta el `world`. Es el único lugar con escritura.
-- `eventlog/log.py` guarda el historial completo (fuente de verdad del run).
-- **NUEVO (v2):** los eventos significativos para un agente también se copian a su
-  memoria episódica (lo hace `systems/memory.py` leyendo el log del tick).
+- An `Event` is an immutable datum: `(type, tick, scale, payload)`.
+- Systems **emit** events; they never apply changes.
+- `eventlog/apply.py` has one applier per `EventType` that knows how that event
+  mutates the `world`. It is the only place with write access.
+- `eventlog/log.py` stores the complete history (source of truth for the run).
+- **NEW (v2):** significant events for an agent are also copied to its episodic
+  memory (done by `systems/memory.py` reading the tick's log).
 
-Este patrón habilita: reproducibilidad, auditoría causal, y la proyección offline
-(que reconstruye/saltea estado a partir de la naturaleza de los procesos).
-
----
-
-## 8. Determinismo y aleatoriedad (rng.py)
-
-- **Un único** `random.Random(seed)` se crea en el arranque y se inyecta vía
-  `TickContext`. Nada usa el `random` global.
-- Para sub-streams reproducibles (p. ej. por system) se derivan generadores hijos de
-  forma determinista a partir del seed maestro, no por instancias ad-hoc.
-- Consecuencia: dos runs con el mismo seed producen **el mismo log de eventos**, que
-  es exactamente el gate de validación de la Semana 1.
+This pattern enables: reproducibility, causal auditability, and offline projection
+(which reconstructs/skips state based on the nature of the processes).
 
 ---
 
-## 9. Persistencia offline (projector/) — Semana 4
+## 8. Determinism and randomness (rng.py)
 
-El mayor riesgo técnico. Al reconectar **no** se simula tick a tick el tiempo
-ausente: se proyecta un estado consistente separando procesos por naturaleza.
+- **A single** `random.Random(seed)` is created at startup and injected via
+  `TickContext`. Nothing uses global `random`.
+- For reproducible sub-streams (e.g. per system), child generators are derived
+  deterministically from the master seed, not via ad-hoc instances.
+- Consequence: two runs with the same seed produce **the same event log**, which is
+  exactly the Week 1 validation gate.
+
+---
+
+## 9. Offline persistence (projector/) — Week 4
+
+The biggest technical risk. On reconnection, the absent time is **not** simulated
+tick by tick: a consistent state is projected by separating processes by nature.
 
 ```text
-Deterministas (calculables en salto):
-  envejecimiento, contratos, pagos recurrentes, demografía base
+Deterministic (computable in a jump):
+  aging, contracts, recurring payments, base demographics
 
-Estocásticos (muestreados, no simulados tick a tick):
-  accidentes, encuentros sociales, eventos de salud agudos
-```
-
----
-
-## 10. Tests de invariantes (la espina anti-deuda)
-
-Propiedades que **nunca** deben romperse, chequeadas en cada run. Si una falla, se
-para y se arregla: no se acumula deuda.
-
-1. **Conservación de dinero** — no aparece ni desaparece sin un evento que lo explique.
-2. **Cuadre poblacional** — vivos + muertos = nacidos. Sin fugas.
-3. **Rangos válidos** — energía, bienestar, salud ∈ `[0, 1]`; edad ≥ 0.
-4. **Integridad referencial** — toda relación/hogar apunta a entidades existentes.
-5. **Determinismo** — dos runs con el mismo seed ⇒ logs de eventos idénticos.
-
-Implementados en `tests/` con `pytest`. Ver [CONTEXT.md](./CONTEXT.md) para el estado
-de cobertura por semana.
-
----
-
-## 11. Capas activables (no fases)
-
-Las capas son **flags**, no etapas secuenciales del código. El motor no sabe de
-capas; solo activa los systems cuyo flag esté encendido.
-
-```text
-Capa 1  Personas · Hogares · Trabajo · Movilidad        ← MVP arranca aquí
-Capa 2  Ingresos · Gastos · Ahorro · Comercio
-Capa 3  Clima · Energía · Agua · Gas · Electricidad
-Capa 4  Relaciones · Amistades · Parejas · Redes de apoyo
-Capa 5  Salud física · Salud mental · Hábitos
-Capa 6  Seguridad · Accidentes · Infracciones · Patrullas · Cámaras
+Stochastic (sampled, not simulated tick by tick):
+  accidents, social encounters, acute health events
 ```
 
 ---
 
-## 12. Mapa plan → arquitectura
+## 10. Invariant tests (the anti-debt backbone)
 
-| Semana | Gate de validación                              | Componentes que toca                                |
-|--------|-------------------------------------------------|-----------------------------------------------------|
-| 1      | ¿El mundo tickea determinista y reproducible?   | `rng`, `state/*`, `eventlog`, `scheduler`, `seeder` |
-| 2      | ¿Los agentes se ven distintos entre sí?         | `traits`, `needs`, `wellbeing`, `decision`, `economy` |
-| 3      | ¿El pasado pesa? ¿Hay irracionalidad creíble?   | `memory`, `emotion`, `goals`                        |
-| 4      | ¿La red reacciona ante una muerte/shock?        | `relations`, `contagion`, `death`, `projector`, `observers` |
+Properties that must **never** be violated, checked on every run. If one fails,
+stop and fix it: no debt accumulates.
+
+1. **Money conservation** — money does not appear or disappear without an event explaining it.
+2. **Population balance** — alive + dead = born. No leaks.
+3. **Valid ranges** — energy, wellbeing, health ∈ `[0, 1]`; age ≥ 0.
+4. **Referential integrity** — every relationship/household points to existing entities.
+5. **Determinism** — two runs with the same seed ⇒ identical event logs.
+
+Implemented in `tests/` with `pytest`. See [CONTEXT.md](./CONTEXT.md) for coverage
+status per week.
 
 ---
 
-## 13. Principios de escalabilidad (conservados)
+## 11. Activatable layers (not phases)
 
-No simular todo al máximo detalle. Niveles de abstracción:
+Layers are **flags**, not sequential code stages. The engine knows nothing about
+layers; it simply activates the systems whose flag is on.
 
 ```text
-Nivel 1  Estadísticas agregadas
-Nivel 2  Hogares
-Nivel 3  Personas individuales
-Nivel 4  Personas activas cerca del usuario
+Layer 1  Persons · Households · Work · Mobility          ← MVP starts here
+Layer 2  Income · Expenses · Savings · Commerce
+Layer 3  Climate · Energy · Water · Gas · Electricity
+Layer 4  Relationships · Friendships · Partners · Support networks
+Layer 5  Physical health · Mental health · Habits
+Layer 6  Safety · Accidents · Violations · Patrols · Cameras
 ```
 
-La complejidad sube solo cuando es necesario. No se implementa en el MVP, pero el
-diseño (entidades por id, systems por capa) no lo impide.
+---
+
+## 12. Plan → architecture map
+
+| Week | Validation gate                                         | Components touched                                          |
+|------|---------------------------------------------------------|-------------------------------------------------------------|
+| 1    | Does the world tick deterministically and reproducibly? | `rng`, `state/*`, `eventlog`, `scheduler`, `seeder`         |
+| 2    | Do agents look distinct from each other?                | `traits`, `needs`, `wellbeing`, `decision`, `economy`       |
+| 3    | Does the past weigh in? Is there credible irrationality?| `memory`, `emotion`, `goals`                                |
+| 4    | Does the network react to a death/shock?                | `relations`, `contagion`, `death`, `projector`, `observers` |
+
+---
+
+## 13. Scalability principles (preserved)
+
+Do not simulate everything at maximum detail. Levels of abstraction:
+
+```text
+Level 1  Aggregate statistics
+Level 2  Households
+Level 3  Individual persons
+Level 4  Active persons near the user
+```
+
+Complexity only increases when necessary. Not implemented in the MVP, but the
+design (entities by id, systems by layer) does not prevent it.
