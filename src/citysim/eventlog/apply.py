@@ -11,6 +11,7 @@ from typing import Callable
 
 from ..state.enums import EventType
 from ..state.event import Event
+from ..state.person import Goal, MemoryTrace
 from ..state.world import World
 
 Applier = Callable[[World, Event], None]
@@ -133,5 +134,68 @@ def _apply_expense(world: World, event: Event) -> None:
     if person is not None and person.alive:
         person.money -= event.payload["amount"]
 
-# Los demás EventType (GOAL_*, RELATIONSHIP_*, ...) se registran aquí a medida que se
-# implementan sus systems (Semanas 3-4).
+# --- Aplicadores Semana 3 (trayectoria) --------------------------------------
+
+@applier(EventType.MEMORY_UPDATED)
+def _apply_memory(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    person.memory = [
+        MemoryTrace(
+            event_type=t["event_type"],
+            valence=t["valence"],
+            intensity=t["intensity"],
+            age_ticks=t["age_ticks"],
+        )
+        for t in event.payload["traces"]
+    ]
+
+
+@applier(EventType.GOAL_FORMED)
+def _apply_goal_formed(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    person.goals.append(Goal(
+        kind=event.payload["kind"],
+        target=event.payload["target"],
+    ))
+
+
+@applier(EventType.GOAL_ACHIEVED)
+def _apply_goal_achieved(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    kind = event.payload["kind"]
+    for goal in person.goals:
+        if goal.kind == kind and goal.active:
+            goal.active = False
+            break
+    # Deja huella positiva en la memoria del agente
+    person.memory.append(MemoryTrace(
+        event_type=f"goal_achieved_{kind}",
+        valence=0.8,
+        intensity=0.7,
+        age_ticks=0,
+    ))
+
+
+@applier(EventType.GOAL_ABANDONED)
+def _apply_goal_abandoned(world: World, event: Event) -> None:
+    person = world.persons.get(event.payload["person_id"])
+    if person is None or not person.alive:
+        return
+    kind = event.payload["kind"]
+    for goal in person.goals:
+        if goal.kind == kind and goal.active:
+            goal.active = False
+            break
+    # Deja huella negativa en la memoria del agente
+    person.memory.append(MemoryTrace(
+        event_type=f"goal_abandoned_{kind}",
+        valence=-0.5,
+        intensity=0.6,
+        age_ticks=0,
+    ))

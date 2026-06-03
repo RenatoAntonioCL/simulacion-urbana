@@ -58,6 +58,7 @@ class EventType(Enum):
     EXPENSE = "expense"
 
     # Semana 3 — trayectoria
+    MEMORY_UPDATED = "memory_updated"
     GOAL_FORMED = "goal_formed"
     GOAL_ACHIEVED = "goal_achieved"
     GOAL_ABANDONED = "goal_abandoned"

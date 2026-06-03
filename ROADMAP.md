@@ -22,7 +22,7 @@ desde `v0.2.0-alpha`.
 | `v0.0.x`       | Núcleo determinista (Sem. 1) | ¿El mundo tickea determinista y reproducible?        | 🟡 En progreso |
 | `v0.1.0`       | Plataforma descargable       | App de escritorio: fachada + cliente Pygame + ejecutables (Win/Mac/Linux) | ✅ Hecho |
 | `v0.2.0-alpha` | Identidad (Sem. 2)           | ¿Los agentes se ven distintos entre sí?              | ✅ Hecho |
-| `v0.3.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ⬜ Pendiente |
+| `v0.3.0-alpha` | Trayectoria (Sem. 3)         | ¿El pasado pesa? ¿Hay irracionalidad creíble?        | ✅ Hecho |
 | `v0.4.0-alpha` | Sociedad (Sem. 4)            | ¿La red reacciona ante una muerte / shock?           | ⬜ Pendiente |
 | `v1.0.0`       | MVP cerrado                  | Los 4 gates pasados: un año reproducible y no plano  | ⬜ Pendiente |
 
@@ -67,15 +67,15 @@ Que los agentes se vean distintos entre sí. Rompe la planitud.
 - [x] Economía mínima (Capa 1): trabajo da ingreso, consumo gasta.
 - [x] **Gate:** dos agentes con economía similar pero rasgos opuestos deciden distinto.
 
-## v0.3.0-alpha — Trayectoria ⬜
+## v0.3.0-alpha — Trayectoria ✅
 
 Que el pasado vivido cambie el presente, con irracionalidad creíble.
 
-- [ ] Memoria episódica con decaimiento.
-- [ ] Emoción transitoria por appraisal, que decae según resiliencia (nunca almacenada).
-- [ ] Objetivos dinámicos (se forman, persiguen, logran o abandonan).
-- [ ] Conexión memoria → decisión (un despido sube la aversión al riesgo).
-- [ ] **Gate:** dos agentes iguales con historias distintas se comportan distinto hoy.
+- [x] Memoria episódica con decaimiento.
+- [x] Emoción transitoria por appraisal, que decae según resiliencia (nunca almacenada).
+- [x] Objetivos dinámicos (se forman, persiguen, logran o abandonan).
+- [x] Conexión memoria → decisión (un despido sube la aversión al riesgo).
+- [x] **Gate:** dos agentes iguales con historias distintas se comportan distinto hoy.
 
 ## v0.4.0-alpha — Sociedad ⬜
 

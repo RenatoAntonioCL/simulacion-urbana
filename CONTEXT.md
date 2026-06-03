@@ -1,7 +1,7 @@
 # Contexto del Proyecto
 
 > Estado vivo del proyecto: dónde estamos, qué sigue y cómo trabajar acá.
-> Se actualiza al cerrar cada semana/hito. Última actualización: **2026-06-01**.
+> Se actualiza al cerrar cada semana/hito. Última actualización: **2026-06-02**.
 
 ---
 
@@ -27,14 +27,14 @@ Documentos de origen:
 
 | Aspecto            | Estado                                                        |
 |--------------------|--------------------------------------------------------------|
-| Fase               | **Semana 2 — Identidad** (rasgos + necesidades + decisión)   |
+| Fase               | **Semana 3 — Trayectoria** (memoria + emoción + objetivos)   |
 | Semana 1 (Núcleo)  | 🟡 En progreso: motor late, tickea y registra eventos        |
-| Semana 2 (Identidad)| 🟡 Implementada (rasgos, needs, wellbeing, decisión, economía); pendiente mergear/etiquetar `v0.2.0-alpha` |
-| Semana 3 (Trayectoria)| ⬜ Pendiente                                              |
+| Semana 2 (Identidad)| ✅ Rasgos, needs, wellbeing, decisión, economía (v0.2.0-alpha) |
+| Semana 3 (Trayectoria)| ✅ Memoria episódica, emoción transitoria, metas dinámicas (v0.3.0-alpha) |
 | Semana 4 (Sociedad)| ⬜ Pendiente                                                 |
 | Plataforma         | ✅ Fachada + cliente Pygame + ejecutables (release v0.1.0)   |
 | Capas activas      | Capa 1 (Personas · Hogares · Trabajo · Movilidad · economía mínima) |
-| Tests              | ✅ 41 tests verdes (invariantes, reproducibilidad, fachada, UI, gate Sem. 2) |
+| Tests              | ✅ 49 tests verdes (invariantes, reproducibilidad, fachada, UI, gates Sem. 2 y 3) |
 
 Leyenda: ✅ hecho · 🟡 en progreso · ⏳ siguiente · ⬜ pendiente
 
@@ -53,10 +53,8 @@ Leyenda: ✅ hecho · 🟡 en progreso · ⏳ siguiente · ⬜ pendiente
   el run en contenedor reproduce la misma huella de log que el local.
 
 ### Lo que es STUB todavía (NotImplementedError consciente)
-- Systems de comportamiento: `needs`, `wellbeing`, `decision`, `economy` (Semana 2);
-  `memory`, `emotion`, `goals` (Semana 3); `relations`, `contagion`, `death` (Semana 4).
+- Systems de Semana 4: `relations`, `contagion`, `death`.
 - Proyección offline (`projector`) y observadores (Semana 4).
-- Rasgos y necesidades en el seeder (se añaden en Semana 2).
 
 > Nota sobre determinismo: con solo `aging` (seed-independiente), el log de eventos aún
 > no diverge entre seeds; la semilla hoy solo afecta la población inicial. La
@@ -67,16 +65,14 @@ Leyenda: ✅ hecho · 🟡 en progreso · ⏳ siguiente · ⬜ pendiente
 
 ## Próximo paso concreto
 
-Arrancar la **Semana 1 — Núcleo determinista**:
-1. Completar los modelos de `state/` (estado base, sin rasgos aún).
-2. RNG sembrado inyectado (`rng.py`).
-3. `eventlog`: emitir, aplicar y guardar eventos.
-4. `scheduler`: loop de ticks multi-escala.
-5. Seeder determinista (100 personas · 30 hogares · 20 empresas · 1 barrio).
-6. Primeros tests de invariantes (cuadre poblacional, rangos válidos, determinismo).
+Arrancar la **Semana 4 — Sociedad** (relaciones, contagio, muerte):
+1. Entidad `Relationship` con tipo, fuerza, reciprocidad e historia.
+2. Contagio social: estados de ánimo se difunden por la red (proporcional a fuerza del vínculo).
+3. Sistema de muerte emergente + cola de consecuencias (duelo, herencia, reestructuración de hogar).
+4. Proyección offline (`projector`) y una vista de observador.
 
-**Gate de Semana 1:** dos runs con el mismo seed producen el mismo log de eventos y
-los invariantes pasan tras simular un año.
+**Gate de Semana 4:** una muerte bien conectada genera ondas en red y economía;
+shock de barrio produce caída de ánimo colectiva.
 
 ---
 

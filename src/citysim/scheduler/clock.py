@@ -14,7 +14,7 @@ from ..rng import Rng
 from ..state.enums import EventType, TimeScale
 from ..state.event import Event
 from ..state.world import World
-from ..systems import aging, decision, economy, needs, wellbeing
+from ..systems import aging, decision, economy, goals, memory, needs, wellbeing
 from ..systems.base import SystemSpec, TickContext
 
 
@@ -30,6 +30,8 @@ def build_default_registry() -> list[SystemSpec]:
         wellbeing.SPEC,
         decision.SPEC,
         economy.SPEC,
+        memory.SPEC,
+        goals.SPEC,
     ]
 
 

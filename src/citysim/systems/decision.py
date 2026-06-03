@@ -15,6 +15,7 @@ from ..state.enums import EventType, Layer, TimeScale
 from ..state.event import Event
 from ..state.person import Person
 from ..state.world import World
+from . import emotion as emotion_sys
 from .base import SystemSpec, TickContext, clamp01
 
 # Acciones posibles (Capa 1). Orden = prioridad de evaluación satisficiente.
@@ -31,12 +32,15 @@ _MIN_WORK_ENERGY = 0.2  # sin energía no se puede trabajar
 def _scores(person: Person) -> dict[str, float]:
     t = person.traits
     n = person.needs
+    # mood en [-1, 1]: recalculado cada tick desde la memoria (nunca almacenado).
+    # Mal ánimo → menos disposición a trabajar y consumir, más a descansar.
+    mood = emotion_sys.compute(person)
     can_work = person.employer_id is not None and person.energy >= _MIN_WORK_ENERGY
     return {
-        ACTION_WORK: clamp01(0.6 * t.ambition + 0.4 * (1.0 - n.security)) if can_work else 0.0,
+        ACTION_WORK: clamp01(0.6 * t.ambition + 0.4 * (1.0 - n.security) + 0.10 * mood) if can_work else 0.0,
         ACTION_SOCIALIZE: clamp01(0.6 * t.sociability + 0.4 * (1.0 - n.belonging)),
-        ACTION_REST: clamp01(1.0 - person.energy),
-        ACTION_CONSUME: clamp01(0.5 * (1.0 - n.stimulation) + 0.5 * clamp01(person.money / 5000.0)),
+        ACTION_REST: clamp01(1.0 - person.energy - 0.10 * mood),
+        ACTION_CONSUME: clamp01(0.5 * (1.0 - n.stimulation) + 0.5 * clamp01(person.money / 5000.0) + 0.10 * mood),
     }
 
 
