@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "citysim"
 version = "0.3.0a1"
-description = "Simulación urbana persistente: una sociedad artificial emergente"
+description = "Persistent urban simulation: an emergent artificial society"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -13,11 +13,11 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-# Interfaz de escritorio (cliente Pygame, ADR-0012). Opcional: el núcleo y la fachada
-# no dependen de esto. Instalar con  pip install ".[ui]"
+# Desktop interface (Pygame client, ADR-0012). Optional: the core and facade
+# do not depend on this. Install with  pip install ".[ui]"
 ui = ["pygame>=2.5"]
-# Herramientas para empaquetar el cliente a ejecutable (ADR-0013). Opcional.
-# Instalar con  pip install ".[ui,build]"
+# Tools for packaging the client as an executable (ADR-0013). Optional.
+# Install with  pip install ".[ui,build]"
 build = ["pyinstaller>=6.0"]
 
 [tool.setuptools.packages.find]
