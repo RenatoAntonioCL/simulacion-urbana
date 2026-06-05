@@ -294,6 +294,23 @@ class App:
             pygame.draw.rect(
                 self.screen, self._meter_color(v), pygame.Rect(x, y + 16, fill, 7), border_radius=4
             )
+        return y + 27
+
+    def _emotion_meter(self, x: int, y: int, w: int, value: float) -> int:
+        """Medidor bipolar de ánimo [-1,1]: rojo a la izquierda (malestar), verde a la
+        derecha (bienestar), con marca de centro en 0."""
+        mood = "malestar" if value < -0.15 else ("bienestar" if value > 0.15 else "neutro")
+        self.screen.blit(self.small.render("Ánimo", True, MUTED), (x, y))
+        self.screen.blit(self.small.render(f"{value:+.2f}  {mood}", True, INK), (x + 60, y))
+        bar_y = y + 16
+        pygame.draw.rect(self.screen, FIELD_BG, pygame.Rect(x, bar_y, w, 7), border_radius=4)
+        cx = x + w // 2
+        v = max(-1.0, min(1.0, value))
+        half = int((w // 2) * abs(v))
+        if half > 0:
+            rect = pygame.Rect(cx - half, bar_y, half, 7) if v < 0 else pygame.Rect(cx, bar_y, half, 7)
+            pygame.draw.rect(self.screen, WARN if v < 0 else OK, rect, border_radius=4)
+        pygame.draw.line(self.screen, MUTED, (cx, bar_y - 2), (cx, bar_y + 9))
         return y + 30
 
     def _draw_person_panel(self, person, canvas_w: int) -> None:
@@ -308,7 +325,9 @@ class App:
         money_col = OK if person.money >= 0 else WARN
         self.screen.blit(self.small.render(f"$ {person.money:,.0f}", True, money_col), (x, 64))
 
-        y = self._section(x, 92, "Estado")
+        y = self._emotion_meter(x, 88, w, person.emotion)
+
+        y = self._section(x, y, "Estado")
         y = self._meter(x, y, w, "Bienestar", person.wellbeing)
         y = self._meter(x, y, w, "Salud", person.health)
         y = self._meter(x, y, w, "Energía", person.energy)
@@ -334,6 +353,21 @@ class App:
             ("Estimulación", n.stimulation),
         ):
             y = self._meter(x, y, w, label, val)
+
+        y = self._section(x, y + 8, "Objetivos")
+        active_goals = [g for g in person.goals if g.active]
+        if active_goals:
+            for g in active_goals[:3]:
+                pct = max(0.0, min(1.0, g.progress))
+                self.screen.blit(self.small.render(g.kind, True, INK), (x, y))
+                self.screen.blit(self.small.render(f"{int(pct * 100)}%", True, MUTED), (x + w + 6, y))
+                pygame.draw.rect(self.screen, FIELD_BG, pygame.Rect(x, y + 15, w, 5), border_radius=3)
+                fill = int(w * pct)
+                if fill > 0:
+                    pygame.draw.rect(self.screen, ACCENT, pygame.Rect(x, y + 15, fill, 5), border_radius=3)
+                y += 26
+        else:
+            self.screen.blit(self.small.render("sin objetivos activos", True, MUTED), (x, y))
 
         hint = self.small.render("ESC o clic en vacío: cerrar", True, MUTED)
         self.screen.blit(hint, (x, HEIGHT - BAR_H - 24))

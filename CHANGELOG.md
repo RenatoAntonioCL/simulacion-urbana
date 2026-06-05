@@ -17,7 +17,14 @@ development, the version stays in `0.x` and the API is considered unstable.
     nearest agent within a radius — keeps selection testable headless.
   - `SimController.select()` / `selected_person()`: selection state in the presenter;
     the DTO is re-read from the facade each frame, so the panel tracks the live agent.
-  - 5 new client tests (selection lifecycle + hit-test). **54 green tests total.**
+  - 5 new client tests (selection lifecycle + hit-test).
+- **Facade — trajectory exposed in `PersonDTO`**: the Week 3 trajectory (emotion,
+  memory, goals) is now readable by clients. `PersonDTO` gains `emotion` (recomputed
+  from memory via `systems.emotion`, never stored — ADR-0006), `memory`
+  (`MemoryTraceDTO`) and `goals` (`GoalDTO`). The inspection panel uses them: a bipolar
+  **Ánimo** meter (`[-1,1]`) and an **Objetivos** section with active goals + progress.
+  - 1 new facade test (emotion matches the pure function; memory/goals form over a run).
+    **55 green tests total.**
 
 ## [0.3.0-alpha] — 2026-06-02
 
