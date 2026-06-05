@@ -1,6 +1,6 @@
 # Persistent Urban Simulation
 
-[![CI](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml/badge.svg)](https://github.com/RenatoAntonioCL/simulacion-urbana/actions/workflows/ci.yml)
+[![CI](https://github.com/RenatoAntonioCL/society-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/RenatoAntonioCL/society-sim/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
@@ -101,8 +101,12 @@ pyinstaller packaging/citysim-desktop.spec
 
 ## Status
 
-**Week 0 — Scaffolding.** Structure and contracts created; no simulation logic yet.
-Next: Week 1 (deterministic core). See [CONTEXT.md](./CONTEXT.md).
+**`v0.3.0-alpha` — Week 3 (Trajectory).** The deterministic core runs, agents have
+traits, needs, wellbeing, a satisficing decision, a minimal economy and now memory,
+transient emotion and dynamic goals: past lived experience changes present behavior.
+A Pygame desktop client lets you create a world and watch it evolve (play/pause, speed,
+step, save/load). 49 green tests. Next: Week 4 (Society — relationships, contagion,
+death). See [CONTEXT.md](./CONTEXT.md) for live status.
 
 ## Principles
 
