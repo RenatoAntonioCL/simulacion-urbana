@@ -23,6 +23,7 @@ from ..state.household import Household
 from ..state.person import Person
 from ..state.place import Place
 from ..state.relationship import Relationship
+from ..systems import emotion as emotion_sys
 
 
 @dataclass(frozen=True)
@@ -48,11 +49,32 @@ class NeedsDTO:
 
 
 @dataclass(frozen=True)
+class MemoryTraceDTO:
+    """Vista de un recuerdo (Semana 3): no se borra, se atenúa con la antigüedad."""
+
+    event_type: str
+    valence: float    # signo/calidad en [-1, 1]
+    intensity: float  # fuerza inicial en [0, 1]
+    age_ticks: int
+
+
+@dataclass(frozen=True)
+class GoalDTO:
+    """Vista de una meta dinámica (Semana 3)."""
+
+    kind: str
+    target: float
+    progress: float
+    active: bool
+
+
+@dataclass(frozen=True)
 class PersonDTO:
     """Vista de una persona.
 
-    Estado base (Semana 1) + identidad (Semana 2: rasgos, necesidades, acción en curso).
-    La trayectoria (memoria, metas) se incorporará cuando sus capas estén activas.
+    Estado base (Semana 1) + identidad (Semana 2: rasgos, necesidades, acción en curso)
+    + trayectoria (Semana 3: emoción transitoria, memoria, metas). La `emotion` no es un
+    campo del núcleo (ADR-0006): se recalcula aquí desde la memoria al construir el DTO.
     """
 
     id: int
@@ -70,6 +92,10 @@ class PersonDTO:
     traits: TraitsDTO
     needs: NeedsDTO
     current_action: str | None
+    # Semana 3 (aditivo)
+    emotion: float
+    memory: tuple[MemoryTraceDTO, ...]
+    goals: tuple[GoalDTO, ...]
 
     @classmethod
     def from_entity(cls, p: Person) -> "PersonDTO":
@@ -100,6 +126,20 @@ class PersonDTO:
                 stimulation=p.needs.stimulation,
             ),
             current_action=p.current_action,
+            emotion=emotion_sys.compute(p),
+            memory=tuple(
+                MemoryTraceDTO(
+                    event_type=t.event_type,
+                    valence=t.valence,
+                    intensity=t.intensity,
+                    age_ticks=t.age_ticks,
+                )
+                for t in p.memory
+            ),
+            goals=tuple(
+                GoalDTO(kind=g.kind, target=g.target, progress=g.progress, active=g.active)
+                for g in p.goals
+            ),
         )
 
 

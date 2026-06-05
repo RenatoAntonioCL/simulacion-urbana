@@ -106,6 +106,25 @@ def test_mutating_event_payload_dto_does_not_touch_world():
     assert sim._log.fingerprint() == snapshot
 
 
+# --- Trayectoria expuesta en el DTO (Semana 3) -------------------------------
+
+def test_person_dto_exposes_trajectory():
+    from citysim.systems import emotion as emotion_sys
+
+    sim = _sim(42)
+    sim.advance_days(60)  # tiempo suficiente para que se formen memoria y metas
+
+    # La emoción del DTO se recalcula desde la memoria y coincide con la función pura.
+    pid = next(iter(sim._world.persons))
+    assert sim.person(pid).emotion == emotion_sys.compute(sim._world.persons[pid])
+
+    state = sim.state()
+    assert all(isinstance(p.memory, tuple) and isinstance(p.goals, tuple) for p in state.persons)
+    # En una corrida de 60 días, la trayectoria deja huella en la población.
+    assert any(p.memory for p in state.persons)
+    assert any(p.goals for p in state.persons)
+
+
 # --- Invariantes vía fachada --------------------------------------------------
 
 def test_invariants_hold_after_advance():

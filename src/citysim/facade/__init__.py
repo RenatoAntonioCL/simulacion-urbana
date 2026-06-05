@@ -16,7 +16,9 @@ from __future__ import annotations
 
 from .dto import (
     EventDTO,
+    GoalDTO,
     HouseholdDTO,
+    MemoryTraceDTO,
     NeedsDTO,
     PersonDTO,
     PlaceDTO,
@@ -31,6 +33,8 @@ __all__ = [
     "PersonDTO",
     "TraitsDTO",
     "NeedsDTO",
+    "MemoryTraceDTO",
+    "GoalDTO",
     "HouseholdDTO",
     "PlaceDTO",
     "RelationshipDTO",
