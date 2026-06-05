@@ -74,8 +74,17 @@ python -m citysim --days 30
 
 ### Desktop interface (Pygame)
 
-Visual client: create a world, watch it, control the clock (play/pause, speed, step)
-and save/load. Pygame is an optional dependency; the core does not require it.
+Visual client: create a world, watch it, control the clock (play/pause, speed, step),
+click an agent to inspect it (mood, traits, needs, goals) and save/load. Pygame is an
+optional dependency; the core does not require it.
+
+The quickest way (creates the local venv on first run, then launches the window):
+
+```bash
+make ui
+```
+
+Or manually:
 
 ```bash
 pip install -e ".[ui]"
