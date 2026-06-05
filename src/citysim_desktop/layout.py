@@ -70,6 +70,31 @@ def person_position(
     return (base[0] + dx, base[1] + dy)
 
 
+def person_at(
+    point: Point,
+    persons: tuple[PersonDTO, ...] | list[PersonDTO],
+    place_pos: dict[int, Point],
+    radius: float = 8.0,
+) -> int | None:
+    """Id de la persona cuyo punto está bajo `point`, o `None` si no hay ninguna cerca.
+
+    Función pura (sin pygame), simétrica de `person_position`: usa la misma fórmula para
+    ubicar a cada persona y devuelve la **más cercana** dentro de `radius`, de modo que
+    puntos solapados se resuelven a favor del más próximo al clic. Esto deja el
+    hit-testing testeable sin display.
+    """
+    px, py = point
+    best_id: int | None = None
+    best_d2 = radius * radius
+    for person in persons:
+        x, y = person_position(person, place_pos)
+        d2 = (x - px) ** 2 + (y - py) ** 2
+        if d2 <= best_d2:
+            best_d2 = d2
+            best_id = person.id
+    return best_id
+
+
 def _centroid(place_pos: dict[int, Point]) -> Point:
     if not place_pos:
         return (0.0, 0.0)

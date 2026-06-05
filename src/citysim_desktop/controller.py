@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from citysim.config import SimConfig
-from citysim.facade import EventDTO, Simulation, WorldStateDTO
+from citysim.facade import EventDTO, PersonDTO, Simulation, WorldStateDTO
 
 # Pantallas de la UI.
 SCREEN_CREATE = "create"
@@ -36,6 +36,7 @@ class SimController:
         self.playing: bool = False
         self.speed: int = DEFAULT_SPEED  # ticks por segundo
         self._accumulator: float = 0.0   # ticks pendientes (fracción acumulada)
+        self.selected_id: int | None = None  # persona inspeccionada (None = ninguna)
 
     # --- Creación -------------------------------------------------------------
 
@@ -58,6 +59,7 @@ class SimController:
         self.screen = SCREEN_WORLD
         self.playing = False
         self._accumulator = 0.0
+        self.selected_id = None
 
     @property
     def has_world(self) -> bool:
@@ -104,6 +106,22 @@ class SimController:
             return (0, 0, 0)
         return (self._sim.tick, self._sim.day, self._sim.hour)
 
+    # --- Selección / inspección -----------------------------------------------
+
+    def select(self, pid: int | None) -> None:
+        """Marca (o limpia, con `None`) la persona a inspeccionar."""
+        self.selected_id = pid
+
+    def selected_person(self) -> PersonDTO | None:
+        """DTO fresco de la persona seleccionada, o `None`.
+
+        Se relee de la fachada en cada llamada, así el panel refleja el estado vivo
+        mientras la simulación avanza (rasgos, necesidades, bienestar, acción actual).
+        """
+        if self._sim is None or self.selected_id is None:
+            return None
+        return self._sim.person(self.selected_id)
+
     # --- Lectura para la vista (solo DTOs) ------------------------------------
 
     def world_state(self) -> WorldStateDTO | None:
@@ -133,3 +151,4 @@ class SimController:
         self.screen = SCREEN_WORLD
         self.playing = False
         self._accumulator = 0.0
+        self.selected_id = None

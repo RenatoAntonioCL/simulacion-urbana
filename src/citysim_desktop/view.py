@@ -178,7 +178,26 @@ class App:
             self.load_btn.handle(pos)
         else:
             for b in self._world_buttons:
-                b.handle(pos)
+                if b.handle(pos):
+                    return
+            self._select_person_at(pos)
+
+    def _select_person_at(self, pos) -> None:
+        """Selecciona la persona bajo el clic; en vacío del lienzo, deselecciona.
+
+        Los clics sobre el panel o la barra no tocan la selección (así se puede mirar
+        el panel sin perderla). La geometría se deriva igual que al dibujar.
+        """
+        state = self.ctrl.world_state()
+        if state is None:
+            return
+        x, y = pos
+        canvas_w = WIDTH - PANEL_W
+        canvas_h = HEIGHT - BAR_H
+        if x >= canvas_w or y >= canvas_h:
+            return
+        place_pos = layout.place_positions(state.places, canvas_w, canvas_h)
+        self.ctrl.select(layout.person_at(pos, state.persons, place_pos))
 
     def _handle_key(self, event) -> None:
         if self.ctrl.screen == SCREEN_CREATE:
@@ -199,6 +218,8 @@ class App:
             self._do_save()
         elif event.key == pygame.K_l:
             self._do_load()
+        elif event.key == pygame.K_ESCAPE:
+            self.ctrl.select(None)
 
     # --- Dibujo --------------------------------------------------------------
 
@@ -240,8 +261,82 @@ class App:
             color = OK if person.alive else (90, 90, 100)
             pygame.draw.circle(self.screen, color, (int(x), int(y)), 3)
 
-        self._draw_event_panel(state, canvas_w)
+        # Resalta e inspecciona a la persona seleccionada (si hay).
+        selected = self.ctrl.selected_person()
+        if selected is not None:
+            sx, sy = layout.person_position(selected, place_pos)
+            pygame.draw.circle(self.screen, ACCENT, (int(sx), int(sy)), 9, width=2)
+            self._draw_person_panel(selected, canvas_w)
+        else:
+            self._draw_event_panel(state, canvas_w)
         self._draw_bar(state)
+
+    def _meter_color(self, v: float):
+        """Color de la barra por nivel: bajo (cálido) → medio → alto (verde)."""
+        if v < 0.34:
+            return WARN
+        return ACCENT if v < 0.67 else OK
+
+    def _section(self, x: int, y: int, title: str) -> int:
+        txt = self.small.render(title.upper(), True, ACCENT)
+        self.screen.blit(txt, (x, y))
+        return y + 22
+
+    def _meter(self, x: int, y: int, w: int, label: str, value: float) -> int:
+        """Dibuja `label`, su valor [0,1] y una barra. Devuelve el `y` de la fila siguiente."""
+        self.screen.blit(self.small.render(label, True, MUTED), (x, y))
+        self.screen.blit(self.small.render(f"{value:.2f}", True, INK), (x + w + 6, y))
+        track = pygame.Rect(x, y + 16, w, 7)
+        pygame.draw.rect(self.screen, FIELD_BG, track, border_radius=4)
+        v = max(0.0, min(1.0, value))
+        fill = int(w * v)
+        if fill > 0:
+            pygame.draw.rect(
+                self.screen, self._meter_color(v), pygame.Rect(x, y + 16, fill, 7), border_radius=4
+            )
+        return y + 30
+
+    def _draw_person_panel(self, person, canvas_w: int) -> None:
+        pygame.draw.rect(self.screen, PANEL_BG, pygame.Rect(canvas_w, 0, PANEL_W, HEIGHT - BAR_H))
+        x = canvas_w + 16
+        w = PANEL_W - 32 - 44  # ancho de barra; deja sitio al valor a la derecha
+
+        status = "viva" if person.alive else "†"
+        self.screen.blit(self.font.render(f"Persona #{person.id}  ({status})", True, INK), (x, 14))
+        action = person.current_action or "—"
+        self.screen.blit(self.small.render(f"edad {person.age:.0f}  ·  {action}", True, MUTED), (x, 44))
+        money_col = OK if person.money >= 0 else WARN
+        self.screen.blit(self.small.render(f"$ {person.money:,.0f}", True, money_col), (x, 64))
+
+        y = self._section(x, 92, "Estado")
+        y = self._meter(x, y, w, "Bienestar", person.wellbeing)
+        y = self._meter(x, y, w, "Salud", person.health)
+        y = self._meter(x, y, w, "Energía", person.energy)
+
+        y = self._section(x, y + 8, "Rasgos")
+        t = person.traits
+        for label, val in (
+            ("Sociabilidad", t.sociability),
+            ("Ambición", t.ambition),
+            ("Tol. al riesgo", t.risk_tolerance),
+            ("Escrupulosidad", t.conscientiousness),
+            ("Resiliencia", t.resilience),
+        ):
+            y = self._meter(x, y, w, label, val)
+
+        y = self._section(x, y + 8, "Necesidades")
+        n = person.needs
+        for label, val in (
+            ("Pertenencia", n.belonging),
+            ("Autonomía", n.autonomy),
+            ("Propósito", n.purpose),
+            ("Seguridad", n.security),
+            ("Estimulación", n.stimulation),
+        ):
+            y = self._meter(x, y, w, label, val)
+
+        hint = self.small.render("ESC o clic en vacío: cerrar", True, MUTED)
+        self.screen.blit(hint, (x, HEIGHT - BAR_H - 24))
 
     def _draw_event_panel(self, state, canvas_w: int) -> None:
         panel = pygame.Rect(canvas_w, 0, PANEL_W, HEIGHT - BAR_H)
