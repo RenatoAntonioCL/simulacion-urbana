@@ -10,7 +10,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from citysim.facade import Simulation
 from citysim_desktop import layout
 from citysim_desktop.controller import SimController
 

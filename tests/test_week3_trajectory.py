@@ -7,8 +7,6 @@ decae: tras un shock, el malestar se recupera a un ritmo coherente con la resili
 
 from __future__ import annotations
 
-import pytest
-
 from citysim.state.person import MemoryTrace, Needs, Person, Traits
 from citysim.systems import decision, emotion as emotion_sys
 
