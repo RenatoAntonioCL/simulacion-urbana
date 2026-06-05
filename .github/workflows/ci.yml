@@ -30,6 +30,19 @@ jobs:
       - name: Ruff
         run: ruff check src tests
 
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so gitleaks can scan every commit
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -63,6 +76,15 @@ jobs:
 
       - name: Build runtime image
         run: docker build --target runtime -t citysim:latest .
+
+      - name: Scan image (trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: citysim:latest
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
 
       - name: Smoke run (5 días de simulación)
         run: docker run --rm citysim:latest --days 5
