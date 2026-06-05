@@ -8,6 +8,17 @@ development, the version stays in `0.x` and the API is considered unstable.
 
 ## [Unreleased]
 
+### Added
+- **Desktop client — person inspection panel**: click an agent to inspect it. The
+  right panel shows the person's state (wellbeing, health, energy), the five traits
+  and the five needs as color-coded `[0,1]` bars, plus age, money and current action;
+  the selected dot gets an accent ring. Click empty space or press `Esc` to close.
+  - `layout.person_at()`: pure (pygame-free) hit-test that resolves a click to the
+    nearest agent within a radius — keeps selection testable headless.
+  - `SimController.select()` / `selected_person()`: selection state in the presenter;
+    the DTO is re-read from the facade each frame, so the panel tracks the live agent.
+  - 5 new client tests (selection lifecycle + hit-test). **54 green tests total.**
+
 ## [0.3.0-alpha] — 2026-06-02
 
 **Trajectory** milestone (Week 3): past lived experience changes present behavior.

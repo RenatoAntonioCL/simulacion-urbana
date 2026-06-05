@@ -144,6 +144,50 @@ def test_empty_places_layout_is_safe():
     assert layout.place_positions((), 800, 600) == {}
 
 
+# --- Selección / inspección ---------------------------------------------------
+
+def test_select_returns_fresh_dto_via_facade():
+    c = _world()
+    pid = c.world_state().persons[0].id
+    c.select(pid)
+    person = c.selected_person()
+    assert person is not None and person.id == pid
+
+
+def test_select_none_clears_inspection():
+    c = _world()
+    c.select(c.world_state().persons[0].id)
+    c.select(None)
+    assert c.selected_person() is None
+
+
+def test_selected_person_is_none_without_world():
+    c = SimController()
+    c.select(5)  # aunque haya un id marcado, sin mundo no hay nada que devolver
+    assert c.selected_person() is None
+
+
+def test_create_world_resets_selection():
+    c = _world()
+    c.select(c.world_state().persons[0].id)
+    c.create_world(seed=1, n_persons=10, n_households=3, n_businesses=2)
+    assert c.selected_id is None and c.selected_person() is None
+
+
+def test_person_at_hits_nearest_and_misses_empty_space():
+    c = _world()
+    state = c.world_state()
+    w, h = 760, 656  # tamaño del lienzo (WIDTH - PANEL_W, HEIGHT - BAR_H)
+    place_pos = layout.place_positions(state.places, w, h)
+
+    target = state.persons[0]
+    point = layout.person_position(target, place_pos)
+    assert layout.person_at(point, state.persons, place_pos) == target.id
+
+    # Lejos de cualquier persona ⇒ None.
+    assert layout.person_at((-1000, -1000), state.persons, place_pos) is None
+
+
 # --- HUD agregado -------------------------------------------------------------
 
 def test_total_money_matches_state():
